@@ -1,0 +1,25 @@
+/opt/gcc-8.4.0//bin/g++ -fopenmp -I/qbigwork2/petschlies/software/LIME/build.qbig/include/ -I.. -I/qbigwork2/petschlies/software/FFTW/build.qbig/include -I. -I/qbigwork2/petschlies/software/AFF/build.qbig/include -I/qbigwork2/petschlies/software/tmLQCD-as/build-serial/include -I/qbigwork2/petschlies/software/tmLQCD-as/ -I/qbigwork2/petschlies/software/tmLQCD-as/include -I/qbigwork2/petschlies/software/quda-as/build-serial/include/ -I/opt/cuda-9.2/include/ -I/usr/include/hdf5/serial/ -o test_gradient_flow.o -Wall -g -O2 -DF_ -DHAVE_LHPC_AFF -DHAVE_TMLQCD_LIBWRAPPER -DTM_USE_QUDA -DHAVE_OPENMP -DHAVE_HDF5 -DGPU_DIRECT_SOLVER   -c ../test_gradient_flow.cpp 
+../test_gradient_flow.cpp: In function ‘int main(int, char**)’:
+../test_gradient_flow.cpp:718:97: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+       show_time ( &ta, &tb, "test_gradient_flow", "flow_fwd_gauge_spinor_field", g_cart_id == 0 );
+                                                                                                 ^
+../test_gradient_flow.cpp:718:97: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+../test_gradient_flow.cpp:914:87: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+   show_time ( &start_time, &end_time, "test_gradient_flow", "runtime", g_cart_id == 0 );
+                                                                                       ^
+../test_gradient_flow.cpp:914:87: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+../test_gradient_flow.cpp:391:22: warning: unused variable ‘VOL3’ [-Wunused-variable]
+   unsigned int const VOL3 = LX * LY * LZ;
+                      ^~~~
+../test_gradient_flow.cpp:614:8: warning: unused variable ‘data_tag’ [-Wunused-variable]
+   char data_tag[100];
+        ^~~~~~~~
+../test_gradient_flow.cpp: In function ‘int read_propagator(double**, char*, int, int, double*, double**, const int*)’:
+../test_gradient_flow.cpp:165:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }  /* end of read_propagator */
+ ^
+echo "namespace cvc { const char *g_gitversion = \"a0989670ecc58e90153f2dc6df22231ab3466ba6 /qbigwork2/petschlies/software/cvc-as/build-serial-gf-cpu\"; }" > ../gitversion.cpp
+/opt/gcc-8.4.0//bin/g++ -fopenmp -I/qbigwork2/petschlies/software/LIME/build.qbig/include/ -I.. -I/qbigwork2/petschlies/software/FFTW/build.qbig/include -I. -I/qbigwork2/petschlies/software/AFF/build.qbig/include -I/qbigwork2/petschlies/software/tmLQCD-as/build-serial/include -I/qbigwork2/petschlies/software/tmLQCD-as/ -I/qbigwork2/petschlies/software/tmLQCD-as/include -I/qbigwork2/petschlies/software/quda-as/build-serial/include/ -I/opt/cuda-9.2/include/ -I/usr/include/hdf5/serial/ -o gitversion.o -Wall -g -O2 -DF_ -DHAVE_LHPC_AFF -DHAVE_TMLQCD_LIBWRAPPER -DTM_USE_QUDA -DHAVE_OPENMP -DHAVE_HDF5 -DGPU_DIRECT_SOLVER   -c ../gitversion.cpp 
+/opt/gcc-8.4.0//bin/g++ -fopenmp -o test_gradient_flow -L/opt/cuda-9.2/lib64 -L/opt/cuda-9.2/lib64/stubs  -L/qbigwork2/petschlies/software/quda-as/build-serial/lib -L/qbigwork2/petschlies/software/LIME/build.qbig/lib/ -L/qbigwork2/petschlies/software/FFTW/build.qbig/lib -lfftw -L/qbigwork2/petschlies/software/tmLQCD-as/build-serial/lib/ -lwrapper -lhmc -lmonomial -loperator -lsolver -linit -lmeas -llinalg -lhmc -lxchange -lrational -lio -lsmear -lquda -llime -llapack -lblas -lcuda -lcudart -lcublas -lgfortran  -llhpc-aff -lhdf5_serial -lm  DML_crc32.o dml.o getopt.o cvc_utils.o cvc_geometry.o mpi_init.o io.o io_utils.o propagator_io.o read_input_parser_cvc.o get_index.o gauge_io.o contractions_io.o ranlxd.o ranlxs.o Q_phi.o set_default.o Q_clover_phi.o prepare_source.o matrix_init.o project.o smearing_techniques.o prepare_propagator.o scalar_products.o clover.o rotations.o gitversion.o gamma.o twopoint_function_utils.o contract_baryon.o contract_diagrams.o contract_factorized.o aff_key_conversion.o group_projection.o little_group_projector_set.o dummy_solver.o uwerr.o incomp_gamma.o derived_quantities.o make_x_orbits.o gradient_flow.o gluon_operators.o contract_cvc_tensor.o test_gradient_flow.o -L/opt/cuda-9.2/lib64 -L/qbigwork2/petschlies/software/quda-as/build-serial/lib -L/qbigwork2/petschlies/software/AFF/build.qbig/lib -L/qbigwork2/petschlies/software/LIME/build.qbig/lib/ -L/qbigwork2/petschlies/software/FFTW/build.qbig/lib -lfftw  -L/qbigwork2/petschlies/software/tmLQCD-as/build-serial/lib/ -lwrapper -lhmc -lmonomial -loperator -lsolver -linit -lmeas -llinalg -lhmc -lxchange -lrational -lio -lsmear -lquda  -llime -llapack -lblas -lcuda -lcudart -lcublas -lgfortran -llhpc-aff -lhdf5_serial -lm
+/usr/bin/ld: warning: libgfortran.so.3, needed by //usr/lib/liblapack.so, may conflict with libgfortran.so.5
+/usr/bin/ld: warning: libgfortran.so.3, needed by //usr/lib/liblapack.so, may conflict with libgfortran.so.5

@@ -1,0 +1,114 @@
+# ##########
+work=/qbigwork2/petschlies/software
+srcdir=..
+
+limedir=$(work)/LIME/build.qbig
+
+fftwdir=$(work)/FFTW/build.qbig
+
+lhpcdir=$(work)/AFF/build.qbig
+
+tmLQCD_src=$(work)/tmLQCD-as
+
+tmLQCDdir=$(work)/tmLQCD-as/build-serial
+
+tmLQCD_libs=-lwrapper -lhmc -lmonomial -loperator -lsolver -linit -lmeas -llinalg -lhmc -lxchange -lrational -lio -lsmear
+
+qudadir=$(work)/quda-as/build-serial
+
+cudadir=/opt/cuda-9.2
+
+gccdir=/opt/gcc-8.4.0/
+
+hdf5_include=/usr/include/hdf5/serial
+
+CXX=$(gccdir)/bin/g++ -fopenmp
+CXXFLAGS= -Wall -g -O2 -DF_ -DHAVE_LHPC_AFF -DHAVE_TMLQCD_LIBWRAPPER -DTM_USE_QUDA -DHAVE_OPENMP -DHAVE_HDF5 -DGPU_DIRECT_SOLVER 
+
+CCDEP = g++
+DEPFLAGS = -MM
+
+INCLUDE = -I$(limedir)/include/ -I$(srcdir) -I$(fftwdir)/include -I. -I$(lhpcdir)/include -I$(tmLQCDdir)/include -I$(tmLQCD_src)/ -I$(tmLQCD_src)/include -I$(qudadir)/include/ -I$(cudadir)/include/ -I$(hdf5_include)/
+
+LIBS = -L$(cudadir)/lib64 -L$(qudadir)/lib -L$(lhpcdir)/lib -L$(limedir)/lib/ -L$(fftwdir)/lib -lfftw  -L$(tmLQCDdir)/lib/ $(tmLQCD_libs) -lquda  -llime -llapack -lblas -lcuda -lcudart -lcublas -lgfortran -llhpc-aff -lhdf5_serial -lm
+
+LDFLAGS = -L$(cudadir)/lib64 -L$(cudadir)/lib64/stubs  -L$(qudadir)/lib -L$(limedir)/lib/ -L$(fftwdir)/lib -lfftw -L$(tmLQCDdir)/lib/ $(tmLQCD_libs) -lquda -llime -llapack -lblas -lcuda -lcudart -lcublas -lgfortran  -llhpc-aff -lhdf5_serial -lm
+
+
+LINK = $(CXX) -o $@ ${LDFLAGS}
+COMPILE = ${CXX} $(INCLUDE) -o $@ ${CXXFLAGS}
+
+MODULES = DML_crc32 dml getopt cvc_utils cvc_geometry mpi_init io io_utils propagator_io read_input_parser_cvc \
+	  get_index gauge_io contractions_io ranlxd ranlxs Q_phi set_default \
+	  Q_clover_phi prepare_source matrix_init project smearing_techniques \
+	  prepare_propagator scalar_products clover rotations gitversion gamma twopoint_function_utils \
+	  contract_baryon contract_diagrams contract_factorized aff_key_conversion group_projection little_group_projector_set \
+	  dummy_solver uwerr incomp_gamma derived_quantities make_x_orbits gradient_flow \
+	  gluon_operators contract_cvc_tensor
+
+
+
+HEADERS = getopt cvc_complex cvc_geometry cvc_linalg iblas icontract cvc_utils default_input_values dml global io io_utils \
+	  mpi_init propagator_io read_input_parser get_index gauge_io contractions_io \
+	  ranlxd ranlxs Q_phi set_default laplace_linalg Q_clover_phi \
+          prepare_source matrix_init project smearing_techniques \
+          prepare_propagator scalar_products clover rotations \
+	  gamma gamma_mult_table twopoint_function_utils zm4x4 \
+	  contract_baryon contract_diagrams contract_factorized aff_key_conversion group_projection \
+          set_cubic_group_double_cover_elements set_cubic_group_double_cover_identification_table set_cubic_group_elements \
+          set_cubic_group_elements_v2 gamma gamma_mult_table clebsch_gordan \
+          table_init_z table_init_d table_init_i table_init_c table_init_asym_z group_projection_applicator little_group_projector_set \
+          dummy_solver cvc_timer table_init_2pt uwerr incomp_gamma derived_quantities make_x_orbits
+
+HEADERS = getopt cvc_complex cvc_geometry cvc_linalg iblas icontract cvc_utils default_input_values dml global io io_utils \
+	  mpi_init propagator_io read_input_parser get_index gauge_io contractions_io \
+	  ranlxd ranlxs Q_phi set_default laplace_linalg Q_clover_phi \
+	  prepare_source matrix_init project smearing_techniques \
+	  prepare_propagator scalar_products clover rotations \
+	  gamma gamma_mult_table twopoint_function_utils zm4x4 \
+	  contract_baryon contract_diagrams contract_factorized aff_key_conversion group_projection \
+	  set_cubic_group_double_cover_elements set_cubic_group_double_cover_identification_table set_cubic_group_elements \
+	  set_cubic_group_elements_v2 gamma gamma_mult_table clebsch_gordan \
+	  table_init_z table_init_d table_init_i table_init_c table_init_asym_z group_projection_applicator little_group_projector_set \
+	  dummy_solver cvc_timer table_init_2pt uwerr incomp_gamma derived_quantities make_x_orbits gradient_flow \
+
+PROGRAM = test_gradient_flow make_random_config
+
+
+all: dep $(PROGRAM) 
+
+
+# ##########
+
+read_input_parser_cvc.cpp: ${srcdir}/read_input_parser_cvc.l
+	${LEX} -P cvc_ -i -t $< > ${srcdir}/read_input_parser_cvc.cpp
+
+$(addsuffix .d,$(MODULES)): %.d: ${srcdir}/%.cpp
+	 @ $(CCDEP) ${DEPFLAGS} ${INCLUDE} $< > $@
+
+$(addsuffix .d,$(PROGRAM)): %.d: ${srcdir}/%.cpp
+	 @ $(CCDEP) ${DEPFLAGS} ${INCLUDE} $< > $@
+
+dep: $(addsuffix .d,$(MODULES) ${PROGRAM})
+
+$(addsuffix .o,${MODULES}): %.o: ${srcdir}/%.cpp $(addprefix ${srcdir}/, $(addsuffix .h, ${HEADERS})) %.d
+	${COMPILE} ${OPTARGS} -c $< 
+
+$(addsuffix .o,${PROGRAM}): %.o: ${srcdir}/%.cpp %.d
+	${COMPILE} ${OPTARGS} -c $< 
+
+${PROGRAM}: %: %.o gitversion.cpp $(addsuffix .o,${MODULES})
+	${LINK}  $(addsuffix .o,${MODULES}) $@.o $(LIBS)
+
+gitversion.cpp: ${srcdir}/.git/HEAD ${srcdir}/.git/index
+	echo "namespace cvc { const char *g_gitversion = \"$(shell cd ${srcdir} && git rev-parse HEAD && cd -)\"; }" > ${srcdir}/gitversion.cpp
+
+# ##########
+
+
+clean:
+	rm -f *~ *.o *.d $(PROGRAM) ${srcdir}/gitversion.cpp
+
+.PHONY: clean
+
+# ##########

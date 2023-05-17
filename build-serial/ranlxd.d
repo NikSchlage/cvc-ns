@@ -1,0 +1,1 @@
+ranlxd.o: ../ranlxd.cpp
