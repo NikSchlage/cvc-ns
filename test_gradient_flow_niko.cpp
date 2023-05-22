@@ -672,10 +672,10 @@ int main(int argc, char **argv) {
       
       /***************************************************************************
       * calculate covariant derivative of propagator sf3_0 <- D sf1_1:
-      * spinor_field_eq_spinor_field_pl_spinor_field(double*r, double*s, double*t, unsigned int N)
-      * from cvc_utils.cpp, i.e "r = s + t"
+      * spinor_field_eq_spinor_field_mi_spinor_field(double*r, double*s, double*t, unsigned int N)
+      * from cvc_utils.cpp, i.e "r = s - t"
       ***************************************************************************/
-      spinor_field_eq_spinor_field_pl_spinor_field( spinor_field_3[0], spinor_field_2[0], spinor_field_2[1], VOLUME );
+      spinor_field_eq_spinor_field_mi_spinor_field( spinor_field_3[0], spinor_field_2[0], spinor_field_2[1], VOLUME );
       
       /***************************************************************************
       * calculate the kinetic operator sf3_1 <- sf1_0^dag gamma D sf1_1:
