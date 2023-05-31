@@ -379,17 +379,8 @@ int main(int argc, char **argv) {
   }
 
   /***************************************************************************
-   * prepare up-type stoch. propagator from stoch. oet timeslice source
+   * prepare up-type stoch. propagator from stoch. volume source
    ***************************************************************************/
-  int source_timeslice = -1;
-  int source_proc_id   = -1;
-  int gts              = ( g_source_coords_list[0][0] +  T_global ) %  T_global;
-
-  exitstatus = get_timeslice_source_info ( gts, &source_timeslice, &source_proc_id );
-  if( exitstatus != 0 ) {
-    fprintf(stderr, "[test_gradient_flow] Error from get_timeslice_source_info status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
-    EXIT(123);
-  }
 
   double ** spinor_work  = init_2level_dtable ( 2, _GSI( VOLUME+RAND ) );
   if ( spinor_work == NULL ) {
@@ -397,10 +388,10 @@ int main(int argc, char **argv) {
     EXIT(44);
   }
 
-  /* sw0 <- timeslice source, no spin or color dilution */
-  exitstatus = init_timeslice_source_oet ( &(spinor_work[0]), gts, NULL, 1, 1, 1 );
+  /* set up a stochstic volume source sw0 */
+  exitstatus = prepare_volume_source ( spinor_work[0], VOLUME );
   if( exitstatus != 0 ) {
-    fprintf(stderr, "[test_gradient_flow] Error from init_timeslice_source_oet status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
+    fprintf(stderr, "[test_gradient_flow] Error from prepare_volume_source status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
     EXIT(123);
   }
 
