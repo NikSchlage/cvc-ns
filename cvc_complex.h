@@ -117,6 +117,16 @@ typedef struct {
   (c1)->re = (c2)->re*r; \
   (c1)->im = (c2)->im*r;}
 
+/* c1 /= r */
+#define _co_by_eq_re(c1,r) {\
+  (c1)->re /= r; \
+  (c1)->im /= r;}
+
+/* c1 = r/c2 */
+#define _co_eq_re_by_co(c1,r,c2) {\
+  (c1)->re = r/(c2)->re; \
+  (c1)->im = r/(c2)->im;}
+
 }
 #endif
 
