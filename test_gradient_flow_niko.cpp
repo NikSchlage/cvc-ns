@@ -552,53 +552,64 @@ int main(int argc, char **argv) {
 //  gamma_matrix_set( &gammafive, 5, 1. );  /*  gamma_5 */
   
   
-  
+  complex *zchi_aux = ( complex* ) malloc ( VOLUME * sizeof ( complex ) );
+  complex *zchi = ( complex* ) malloc ( VOLUME * sizeof ( complex ) );
+  _co_eq_zero( zchi );
   
   /***************************************************************************
-  * loop on Gamma structures (v, pv, s, ps) and gamma matrix indices mu
-  ***************************************************************************/
+   * loop on Gamma structures (v, pv, s, ps) and gamma matrix indices mu
+   ***************************************************************************/
   /* for ( int igamma = 0; igamma < gamma_sets; igamma++ ) */
   for ( int igamma = 0; igamma < 1; igamma++ ) /* loop on Gamma structures; only use gamma_0, gamma_1, gamma_2 and gamma_3 here. Hence, only igamma = 0. */
   {
     for ( int ig = 0; ig < gamma_num[igamma]; ig++ ) { /* loop on Dirac gamma matrix indices mu */
       /***************************************************************************
-      * calculate fwd/ bwd displacement for construction of covariant derivative:
-      * spinor_field_eq_cov_displ_spinor_field ( double * const s, double * const r_in, int const mu, int const fbwd, double * const gauge_field )
-      * from Q_phi.cpp
-      * ***************************************************************************/
+       * calculate fwd/ bwd displacement for construction of covariant derivative:
+       * spinor_field_eq_cov_displ_spinor_field ( double * const s, double * const r_in, int const mu, int const fbwd, double * const gauge_field )
+       * from Q_phi.cpp
+       ***************************************************************************/
       /* forward (fbwd = 0)*/
       spinor_field_eq_cov_displ_spinor_field ( spinor_field_2[0], spinor_field_1[1], ig, 0, gauge_field_smeared );
       /* backward (fbwd = 1)*/
       spinor_field_eq_cov_displ_spinor_field ( spinor_field_2[1], spinor_field_1[1], ig, 1, gauge_field_smeared );
       
       /***************************************************************************
-      * calculate covariant derivative of propagator sf3_0 <- D sf1_1:
-      * spinor_field_eq_spinor_field_mi_spinor_field(double*r, double*s, double*t, unsigned int N)
-      * from cvc_utils.cpp, i.e "r = s - t"
-      ***************************************************************************/
+       * calculate covariant derivative of propagator sf3_0 <- D sf1_1:
+       * spinor_field_eq_spinor_field_mi_spinor_field(double*r, double*s, double*t, unsigned int N)
+       * from cvc_utils.cpp, i.e "r = s - t"
+       ***************************************************************************/
       spinor_field_eq_spinor_field_mi_spinor_field( spinor_field_3[0], spinor_field_2[0], spinor_field_2[1], VOLUME );
       
       /***************************************************************************
-      * calculate the kinetic operator sf3_1 <- sf1_0^dag gamma D sf1_1:
-      * co_field_eq_fv_dag_ti_gamma_ti_fv (double*c, double*r, int gid, double*s, unsigned int N )
-      * from cvc_utils.cpp, i.e. "c = r^+ gamma s"
-      ***************************************************************************/
-      co_field_eq_fv_dag_ti_gamma_ti_fv ( spinor_field_3[1], spinor_field_1[0], gamma_id[igamma][ig], spinor_field_3[0], VOLUME );
+       * Part I - calculate zchi <- sf1_0^dag gamma D sf1_1:
+       * calculate sf3_1 <- gamma D sf1_1 using
+       * spinor_field_eq_gamma_ti_spinor_field(double*r, int gid, double*s, unsigned int N)
+       * from cvc_utils.cpp
+       ***************************************************************************/
+      spinor_field_eq_gamma_ti_spinor_field( spinor_field_3[1], gamma_id[igamma][ig], spinor_field_3[0], VOLUME );
       
-      /* write kinetic operator */
-      sprintf ( filename, "test_kinetic_operator_igamma_%d_ig_%d.cvc", igamma, ig );
-      if ( ( exitstatus = write_propagator( spinor_field_3[1], filename, 0, g_propagator_precision) ) != 0 ) {
-        fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
-        EXIT(2);
-      }
+      /***************************************************************************
+       * Part II - calculate zchi <- sf1_0^dag gamma D sf1_1:
+       * calculate scalar product for spinor fields, i.e. sf1_0^dag gamma D sf1_1, using
+       * spinor_scalar_product_co(complex *w, double *xi, double *phi, unsigned int V)
+       * from scalar_products.cpp
+       ***************************************************************************/
+      spinor_scalar_product_co( zchi_aux, spinor_field_1[0], spinor_field_3[1], VOLUME );
+      
+      /***************************************************************************
+       * Part III - calculate zchi <- sf1_0^dag gamma D sf1_1:
+       * sum up zchi contributions using
+       * _co_pl_eq_co(c1,c2)
+       * defined in cvc_complex.h
+       ***************************************************************************/
+      _co_pl_eq_co( zchi, zchi_aux );
+      
     } /* end of loop on Dirac gamma matrix indices mu */
   } /* end of loop on Gamma structures */
   
-  
-  
-  
-  
-  // Is there already a function I can use to calculate "spinor_field_out[0] <- (spinor_field_3[1])^-1"?
+  fprintf(stdout, "# [test_gradient_flow] Zchi = %f + i%f\n", zchi->re, zchi->im );
+  free( zchi );
+  free( zchi_aux );
   
   
   // int n_c = 3; /* colors of quarks are r, g, b */
