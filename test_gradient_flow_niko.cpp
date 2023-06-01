@@ -505,17 +505,7 @@ int main(int argc, char **argv) {
   }
   /* init sf3_0 and sf3_1 */
   memset ( spinor_field_3[0], 0, sizeof_spinor_field );
-  memset ( spinor_field_3[1], 0, sizeof_spinor_field );  
-  
-  
-  double ** spinor_field_out  = init_2level_dtable ( 2, _GSI( VOLUME+RAND ) );
-  if ( spinor_field_out == NULL ) {
-    fprintf(stderr, "[test_gradient_flow] Error from init_2level_dtable %s %d\n", __FILE__, __LINE__ );
-    EXIT(44);
-  } 
-  /* init sfout0 and sfout1 */
-  memset ( spinor_field_out[0], 0, sizeof_spinor_field );
-  memset ( spinor_field_out[1], 0, sizeof_spinor_field );
+  memset ( spinor_field_3[1], 0, sizeof_spinor_field );
   
   
   
@@ -553,8 +543,9 @@ int main(int argc, char **argv) {
   
   
   complex *zchi_aux = ( complex* ) malloc ( VOLUME * sizeof ( complex ) );
+  complex *zchi_aux2 = ( complex* ) malloc ( VOLUME * sizeof ( complex ) );
   complex *zchi = ( complex* ) malloc ( VOLUME * sizeof ( complex ) );
-  _co_eq_zero( zchi );
+  _co_eq_zero( zchi_aux2 );
   
   /***************************************************************************
    * loop on Gamma structures (v, pv, s, ps) and gamma matrix indices mu
@@ -602,28 +593,26 @@ int main(int argc, char **argv) {
        * _co_pl_eq_co(c1,c2)
        * defined in cvc_complex.h
        ***************************************************************************/
-      _co_pl_eq_co( zchi, zchi_aux );
+      _co_pl_eq_co( zchi_aux2, zchi_aux );
       
     } /* end of loop on Dirac gamma matrix indices mu */
   } /* end of loop on Gamma structures */
   
+  
+  int n_c = 3; /* colors of quarks are r, g, b */
+  int n_f = 3; /* contributing flavors are u, d, s */
+  int pre = (-2) * n_c * n_f * VOLUME;  
+  
+  _co_eq_re_by_co( zchi, pre, zchi_aux2 );
+  
   fprintf(stdout, "# [test_gradient_flow] Zchi = %f + i%f\n", zchi->re, zchi->im );
-  free( zchi );
+  
   free( zchi_aux );
-  
-  
-  // int n_c = 3; /* colors of quarks are r, g, b */
-  // int n_f = 3; /* contributing flavors are u, d, s */
-  // double pre = (-2) * VOLUME * n_c * n_f;
-  // /* spinor_field_eq_spinor_field_ti_im (double *r, double *s, double c, unsigned int N) from cvc_utils.cpp */
-  //spinor_field_eq_spinor_field_ti_re ( spinor_field_out[1], spinor_field_out[0], pre, VOLUME ) 
-  
-  
-  
-  
+  free( zchi_aux2 );
+  free( zchi );
+    
   fini_2level_dtable ( &spinor_field_2 );
   fini_2level_dtable ( &spinor_field_3 );
-  fini_2level_dtable ( &spinor_field_out );
   fini_1level_dtable ( &gauge_field_smeared );
   
   
