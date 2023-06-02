@@ -108,7 +108,8 @@ int main(int argc, char **argv) {
   struct timeval ta, tb, start_time, end_time;
   int check_propagator_residual = 0;
   unsigned int gf_niter = 10;
-  double gf_dt = 0.01;
+  double gf_dt = 0.005;  /* minimum flow-time interval. All others are multiples of it. */
+  unsigned int gf_ndt = 3; /* number of flow-time intervals */
 
 
 #ifdef HAVE_LHPC_AFF
@@ -364,164 +365,189 @@ int main(int argc, char **argv) {
 
 
 // START CODING FROM HERE:
-  /***************************************************************************
-   ***************************************************************************
-   **
-   ** Stochastic source and propagator that are to be flowed
-   **
-   ***************************************************************************
-   ***************************************************************************/
+  for ( unsigned int j = 1; j <= gf_ndt; j++ ) /* loop on flow-time intervals */
+  { 
+	  
+    /***************************************************************************
+     ***************************************************************************
+     **
+     ** Stochastic source and propagator that are to be flowed
+     **
+     ***************************************************************************
+     ***************************************************************************/
 
-  double ** spinor_field_1 = init_2level_dtable ( 12, _GSI( ( VOLUME+RAND ) ) );
-  if ( spinor_field_1 == NULL ) {
-    fprintf(stderr, "[test_gradient_flow] Error from init_2level_dtable %s %d\n", __FILE__, __LINE__ );
-    EXIT(44);
-  }
+    double ** spinor_field_1 = init_2level_dtable ( 12, _GSI( ( VOLUME+RAND ) ) );
+    if ( spinor_field_1 == NULL ) {
+      fprintf(stderr, "[test_gradient_flow] Error from init_2level_dtable %s %d\n", __FILE__, __LINE__ );
+      EXIT(44);
+    }
 
-  /***************************************************************************
-   * prepare up-type stoch. propagator from stoch. volume source
-   ***************************************************************************/
+    /***************************************************************************
+     * prepare up-type stoch. propagator from stoch. volume source
+     ***************************************************************************/
 
-  double ** spinor_work  = init_2level_dtable ( 2, _GSI( VOLUME+RAND ) );
-  if ( spinor_work == NULL ) {
-    fprintf(stderr, "[test_gradient_flow] Error from init_2level_dtable %s %d\n", __FILE__, __LINE__ );
-    EXIT(44);
-  }
+    double ** spinor_work  = init_2level_dtable ( 2, _GSI( VOLUME+RAND ) );
+    if ( spinor_work == NULL ) {
+      fprintf(stderr, "[test_gradient_flow] Error from init_2level_dtable %s %d\n", __FILE__, __LINE__ );
+      EXIT(44);
+    }
 
-  /* set up a stochstic volume source sw0 */
-  exitstatus = prepare_volume_source ( spinor_work[0], VOLUME );
-  if( exitstatus != 0 ) {
-    fprintf(stderr, "[test_gradient_flow] Error from prepare_volume_source status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
-    EXIT(123);
-  }
+    /* set up a stochstic volume source sw0 */
+    exitstatus = prepare_volume_source ( spinor_work[0], VOLUME );
+    if( exitstatus != 0 ) {
+      fprintf(stderr, "[test_gradient_flow] Error from prepare_volume_source status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
+      EXIT(123);
+    }
 
-  /* init sw1 */
-  memset ( spinor_work[1], 0, sizeof_spinor_field );
+    /* init sw1 */
+    memset ( spinor_work[1], 0, sizeof_spinor_field );
 
-  /* sw1 <- D_up^-1 sw0 */
-  exitstatus = _TMLQCD_INVERT ( spinor_work[1], spinor_work[0], 0 );
-  if(exitstatus < 0) {
-    fprintf(stderr, "[test_gradient_flow] Error from invert, status was %d %s %d\n", exitstatus, __FILE__, __LINE__ );
-    EXIT(44);
-  }
+    /* sw1 <- D_up^-1 sw0 */
+    exitstatus = _TMLQCD_INVERT ( spinor_work[1], spinor_work[0], 0 );
+    if(exitstatus < 0) {
+      fprintf(stderr, "[test_gradient_flow] Error from invert, status was %d %s %d\n", exitstatus, __FILE__, __LINE__ );
+      EXIT(44);
+    }
 
-  /***************************************************************************
-  * copy spinor work field sw0 to spinor field sf1_0,
-  * i.e. sf1_0 <- timeslice source
-  ***************************************************************************/
-  memcpy ( spinor_field_1[0], spinor_work[0], sizeof_spinor_field );    
+    /***************************************************************************
+     * copy spinor work field sw0 to spinor field sf1_0,
+     * i.e. sf1_0 <- timeslice source
+     ***************************************************************************/
+    memcpy ( spinor_field_1[0], spinor_work[0], sizeof_spinor_field );    
   
-  /***************************************************************************
-  * copy spinor work field sw1 to spinor field sf1_1,
-  * i.e. sf1_1 <- D_up^-1 sw0
-  ***************************************************************************/
-  memcpy ( spinor_field_1[1], spinor_work[1], sizeof_spinor_field );
+    /***************************************************************************
+     * copy spinor work field sw1 to spinor field sf1_1,
+     * i.e. sf1_1 <- D_up^-1 sw0
+     ***************************************************************************/
+    memcpy ( spinor_field_1[1], spinor_work[1], sizeof_spinor_field );
 
-  fini_2level_dtable ( &spinor_work );
-
-
+    fini_2level_dtable ( &spinor_work );
 
 
-  /***************************************************************************
-   ***************************************************************************
-   **
-   ** Gradient Flow (GF) application iteration
-   **
-   ***************************************************************************
-   ***************************************************************************/
+
+
+    /***************************************************************************
+     ***************************************************************************
+     **
+     ** Gradient Flow (GF) application iteration
+     **
+     ***************************************************************************
+     ***************************************************************************/
 #ifdef _GFLOW_CVC
 
-  /***************************************************************************
-   * prepare gauge field for GF
-   ***************************************************************************/
-  double * gauge_field_smeared = init_1level_dtable ( 72 * VOLUMEPLUSRAND );
-  if ( gauge_field_smeared == NULL ) {
-    fprintf(stderr, "[test_gradient_flow] Error from init_1level_dtable %s %d\n", __FILE__, __LINE__);
-    EXIT(3);
-  }
+    /***************************************************************************
+     * prepare gauge field for GF
+     ***************************************************************************/
+    double * gauge_field_smeared = init_1level_dtable ( 72 * VOLUMEPLUSRAND );
+    if ( gauge_field_smeared == NULL ) {
+      fprintf(stderr, "[test_gradient_flow] Error from init_1level_dtable %s %d\n", __FILE__, __LINE__);
+      EXIT(3);
+    }
+  
+    memcpy ( gauge_field_smeared, gauge_field_with_phase, sizeof_gauge_field );
+  
 
-  memcpy ( gauge_field_smeared, gauge_field_with_phase, sizeof_gauge_field );
+    /***************************************************************************
+     * prepare spinor fields for GF
+     ***************************************************************************/
+    double ** spinor_field_2  = init_2level_dtable ( 2, _GSI( VOLUME+RAND ) );
+    if ( spinor_field_2 == NULL ) {
+      fprintf(stderr, "[test_gradient_flow] Error from init_2level_dtable %s %d\n", __FILE__, __LINE__ );
+      EXIT(44);
+    }
+  
+    /* init sf2_0 and sf2_1 */
+    memset ( spinor_field_2[0], 0, sizeof_spinor_field );
+    memset ( spinor_field_2[1], 0, sizeof_spinor_field );
+  
+  
+    double ** spinor_field_3  = init_2level_dtable ( 2, _GSI( VOLUME+RAND ) );
+    if ( spinor_field_3 == NULL ) {
+      fprintf(stderr, "[test_gradient_flow] Error from init_2level_dtable %s %d\n", __FILE__, __LINE__ );
+      EXIT(44);
+    }
+  
+    /* init sf3_0 and sf3_1 */
+    memset ( spinor_field_3[0], 0, sizeof_spinor_field );
+    memset ( spinor_field_3[1], 0, sizeof_spinor_field );
+  
 
-  /***************************************************************************
-   * GF iterations
-   ***************************************************************************/
-  for ( unsigned int i = 0; i <= gf_niter; i++  ) /* loop on gf_niter */
-  {
+    /***************************************************************************
+     * prepare complex numbers
+     ***************************************************************************/
+    complex *zchi_aux = ( complex* ) malloc ( VOLUME * sizeof ( complex ) );
+    complex *zchi_aux2 = ( complex* ) malloc ( VOLUME * sizeof ( complex ) );
+    complex *zchi = ( complex* ) malloc ( VOLUME * sizeof ( complex ) );
+  
 
-    if ( i > 0 ) {
+    /***************************************************************************
+     * prepare Dirac gamma matrices
+     ***************************************************************************/
+    const int gamma_sets = 4;
+    int const gamma_num[4] = {4, 4, 1, 1}; /* {4, 4, 1, 1} because in 1st and 2nd row of gamma_id all entries (i.e. ig)
+                                              are relevant and in 3rd and 4th row only the first entry being the index
+                                              of the gamma_4 and gamma_5, respectively */
+                                            
+    int const gamma_id[4][4] = {           /* gamma_id[igamma][ig] */
+      { 0,  1,  2,  3 },
+      { 6,  7,  8,  9 },
+      { 4, -1, -1, -1 },
+      { 5, -1, -1, -1 } };
+  
+  
+  
 
-      /* flow timeslice source sf1_0 and gauge field */
-      gettimeofday ( &ta, (struct timezone *)NULL );
+    /***************************************************************************
+     ***************************************************************************
+     **
+     ** GF iterations
+     **
+     ***************************************************************************
+     ***************************************************************************/
+   
+    for ( unsigned int i = 0; i <= gf_niter; i++ ) /* loop on gradient flow iterations; flowtime is given by i*gf_dt */
+    {
 
-      flow_fwd_gauge_spinor_field ( gauge_field_smeared, spinor_field_1[0], 1, gf_dt, 1, 1 ); // returns flowed version of spinor_field_1[0] and of gauge_field_smeared
+      if ( i > 0 ) {
 
-      gettimeofday ( &tb, (struct timezone *)NULL );
-      show_time ( &ta, &tb, "test_gradient_flow", "flow_fwd_gauge_spinor_field", g_cart_id == 0 );
+        /* flow timeslice source sf1_0 and gauge field */
+        gettimeofday ( &ta, (struct timezone *)NULL );
+
+        flow_fwd_gauge_spinor_field ( gauge_field_smeared, spinor_field_1[0], 1, j*gf_dt, 1, 1 ); // returns flowed version of spinor_field_1[0] and of gauge_field_smeared
+
+        gettimeofday ( &tb, (struct timezone *)NULL );
+        show_time ( &ta, &tb, "test_gradient_flow", "flow_fwd_gauge_spinor_field", g_cart_id == 0 );
       
-      /* flow propagator sf1_1 <- D_up^-1 sw0 and gauge field */
-      gettimeofday ( &ta, (struct timezone *)NULL );
+        /* flow propagator sf1_1 <- D_up^-1 sw0 and gauge field */
+        gettimeofday ( &ta, (struct timezone *)NULL );
 
-      flow_fwd_gauge_spinor_field ( gauge_field_smeared, spinor_field_1[1], 1, gf_dt, 1, 1 ); // returns flowed version of spinor_field_1[1] and of gauge_field_smeared
+        flow_fwd_gauge_spinor_field ( gauge_field_smeared, spinor_field_1[1], 1, j*gf_dt, 1, 1 ); // returns flowed version of spinor_field_1[1] and of gauge_field_smeared
 
-      gettimeofday ( &tb, (struct timezone *)NULL );
-      show_time ( &ta, &tb, "test_gradient_flow", "flow_fwd_gauge_spinor_field", g_cart_id == 0 );
+        gettimeofday ( &tb, (struct timezone *)NULL );
+        show_time ( &ta, &tb, "test_gradient_flow", "flow_fwd_gauge_spinor_field", g_cart_id == 0 );
 
-    }
+      }
 
-    sprintf ( filename, "flowed_propagator.c%d.t%6.4f.n%d", Nconf, i*gf_dt, i );
-    exitstatus = write_propagator( spinor_field_1[1], filename, 0, g_propagator_precision);
-    if ( exitstatus != 0 ) {
-      fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
-      EXIT(2);
-    }
+      sprintf ( filename, "flowed_propagator.c%d.t%6.4f.n%d", Nconf, j*i*gf_dt, i );
+      exitstatus = write_propagator( spinor_field_1[1], filename, 0, g_propagator_precision);
+      if ( exitstatus != 0 ) {
+        fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
+        EXIT(2);
+      }
 
-  }  /* end of loop on gf_niter */
-  
-  
-  
-  
-  /***************************************************************************
-   ***************************************************************************
-   **
-   ** Calculation of normalization Z_chi
-   **
-   ***************************************************************************
-   ***************************************************************************/
-  
-  double ** spinor_field_2  = init_2level_dtable ( 2, _GSI( VOLUME+RAND ) );
-  if ( spinor_field_2 == NULL ) {
-    fprintf(stderr, "[test_gradient_flow] Error from init_2level_dtable %s %d\n", __FILE__, __LINE__ );
-    EXIT(44);
-  }
-  /* init sf2_0 and sf2_1 */
-  memset ( spinor_field_2[0], 0, sizeof_spinor_field );
-  memset ( spinor_field_2[1], 0, sizeof_spinor_field );
-  
-  
-  double ** spinor_field_3  = init_2level_dtable ( 2, _GSI( VOLUME+RAND ) );
-  if ( spinor_field_3 == NULL ) {
-    fprintf(stderr, "[test_gradient_flow] Error from init_2level_dtable %s %d\n", __FILE__, __LINE__ );
-    EXIT(44);
-  }
-  /* init sf3_0 and sf3_1 */
-  memset ( spinor_field_3[0], 0, sizeof_spinor_field );
-  memset ( spinor_field_3[1], 0, sizeof_spinor_field );
-  
-  
-  
-  
-  const int gamma_sets = 4;
-  int const gamma_num[4] = {4, 4, 1, 1}; /* {4, 4, 1, 1} because in 1st and 2nd row of gamma_id all entries (i.e. ig) are relevant and in 3rd and 4th row only the first entry being the index of the gamma_4 and gamma_5, respectively */
-  int const gamma_id[4][4] = {   /* gamma_id[igamma][ig] */
-    { 0,  1,  2,  3 },
-    { 6,  7,  8,  9 },
-    { 4, -1, -1, -1 },
-    { 5, -1, -1, -1 } };
+
+      /***************************************************************************
+       ***************************************************************************
+       **
+       ** Calculation of normalization Z_chi
+       **
+       ***************************************************************************
+       ***************************************************************************/
      
-  /***************************************************************************
-   * set the gamma matrices,
-   * cf. gamma.cpp: gamma_matrix_set ( gamma_matrix_type *g, int id, double s )
-   ***************************************************************************/
+//  /***************************************************************************
+//   * set the Dirac gamma matrices,
+//   * cf. gamma.cpp: gamma_matrix_set ( gamma_matrix_type *g, int id, double s )
+//   ***************************************************************************/
 //  gamma_matrix_type gamma_list[4][4];
 //  /* vector (v) */
 //  gamma_matrix_set( &( gamma_list[0][0] ), 0, 1. );  /*  gamma_0 = gamma_t */         // igamma = 0, ig = 0
@@ -542,95 +568,99 @@ int main(int argc, char **argv) {
 //  gamma_matrix_set( &gammafive, 5, 1. );  /*  gamma_5 */
   
   
-  complex *zchi_aux = ( complex* ) malloc ( VOLUME * sizeof ( complex ) );
-  complex *zchi_aux2 = ( complex* ) malloc ( VOLUME * sizeof ( complex ) );
-  complex *zchi = ( complex* ) malloc ( VOLUME * sizeof ( complex ) );
-  _co_eq_zero( zchi_aux2 );
+      _co_eq_zero( zchi_aux2 );
   
-  /***************************************************************************
-   * loop on Gamma structures (v, pv, s, ps) and gamma matrix indices mu
-   ***************************************************************************/
-  /* for ( int igamma = 0; igamma < gamma_sets; igamma++ ) */
-  for ( int igamma = 0; igamma < 1; igamma++ ) /* loop on Gamma structures; only use gamma_0, gamma_1, gamma_2 and gamma_3 here. Hence, only igamma = 0. */
-  {
-    for ( int ig = 0; ig < gamma_num[igamma]; ig++ ) { /* loop on Dirac gamma matrix indices mu */
       /***************************************************************************
-       * calculate fwd/ bwd displacement for construction of covariant derivative:
-       * spinor_field_eq_cov_displ_spinor_field ( double * const s, double * const r_in, int const mu, int const fbwd, double * const gauge_field )
-       * from Q_phi.cpp
+       * loop on Gamma structures (v, pv, s, ps) and gamma matrix indices mu
        ***************************************************************************/
-      /* forward (fbwd = 0)*/
-      spinor_field_eq_cov_displ_spinor_field ( spinor_field_2[0], spinor_field_1[1], ig, 0, gauge_field_smeared );
-      /* backward (fbwd = 1)*/
-      spinor_field_eq_cov_displ_spinor_field ( spinor_field_2[1], spinor_field_1[1], ig, 1, gauge_field_smeared );
+      /* for ( int igamma = 0; igamma < gamma_sets; igamma++ ) */
+      for ( int igamma = 0; igamma < 1; igamma++ ) /* loop on Gamma structures; only use gamma_0, gamma_1, gamma_2 and gamma_3 here. Hence, only igamma = 0. */
+      {
+        for ( int ig = 0; ig < gamma_num[igamma]; ig++ ) { /* loop on Dirac gamma matrix indices mu */
+          /***************************************************************************
+           * calculate fwd/ bwd displacement for construction of covariant derivative:
+           * spinor_field_eq_cov_displ_spinor_field ( double * const s, double * const r_in, int const mu, int const fbwd, double * const gauge_field )
+           * from Q_phi.cpp
+           ***************************************************************************/
+          /* forward (fbwd = 0)*/
+          spinor_field_eq_cov_displ_spinor_field ( spinor_field_2[0], spinor_field_1[1], ig, 0, gauge_field_smeared );
+          /* backward (fbwd = 1)*/
+          spinor_field_eq_cov_displ_spinor_field ( spinor_field_2[1], spinor_field_1[1], ig, 1, gauge_field_smeared );
       
+          /***************************************************************************
+           * calculate covariant derivative of propagator sf3_0 <- D sf1_1:
+           * spinor_field_eq_spinor_field_mi_spinor_field(double*r, double*s, double*t, unsigned int N)
+           * from cvc_utils.cpp, i.e "r = s - t"
+           ***************************************************************************/
+          spinor_field_eq_spinor_field_mi_spinor_field( spinor_field_3[0], spinor_field_2[0], spinor_field_2[1], VOLUME );
+      
+          /***************************************************************************
+           * Part I - calculate zchi_aux2 <- sf1_0^dag gamma D sf1_1:
+           * calculate sf3_1 <- gamma D sf1_1 using
+           * spinor_field_eq_gamma_ti_spinor_field(double*r, int gid, double*s, unsigned int N)
+           * from cvc_utils.cpp
+           ***************************************************************************/
+          spinor_field_eq_gamma_ti_spinor_field( spinor_field_3[1], gamma_id[igamma][ig], spinor_field_3[0], VOLUME );
+      
+          /***************************************************************************
+           * Part II - calculate zchi_aux2 <- sf1_0^dag gamma D sf1_1:
+           * calculate scalar product for spinor fields, i.e. sf1_0^dag gamma D sf1_1, using
+           * spinor_scalar_product_co(complex *w, double *xi, double *phi, unsigned int V)
+           * from scalar_products.cpp
+           ***************************************************************************/
+          spinor_scalar_product_co( zchi_aux, spinor_field_1[0], spinor_field_3[1], VOLUME );
+      
+          /***************************************************************************
+           * Part III - calculate zchi_aux2 <- sf1_0^dag gamma D sf1_1:
+           * sum up zchi_aux contributions using
+           * _co_pl_eq_co(c1,c2)
+           * defined in cvc_complex.h
+           ***************************************************************************/
+          _co_pl_eq_co( zchi_aux2, zchi_aux );
+      
+        } /* end of loop on Dirac gamma matrix indices mu */
+      } /* end of loop on Gamma structures */
+  
+  
+      int n_c = 3; /* colors of quarks are r, g, b */
+      int n_f = 3; /* contributing flavors are u, d, s */
+      int pre = (-2) * n_c * n_f * VOLUME;  
+  
       /***************************************************************************
-       * calculate covariant derivative of propagator sf3_0 <- D sf1_1:
-       * spinor_field_eq_spinor_field_mi_spinor_field(double*r, double*s, double*t, unsigned int N)
-       * from cvc_utils.cpp, i.e "r = s - t"
+       * calculate zchi <- (-2 * n_c * n_f * VOLUME ) / zchi_aux2
        ***************************************************************************/
-      spinor_field_eq_spinor_field_mi_spinor_field( spinor_field_3[0], spinor_field_2[0], spinor_field_2[1], VOLUME );
-      
-      /***************************************************************************
-       * Part I - calculate zchi <- sf1_0^dag gamma D sf1_1:
-       * calculate sf3_1 <- gamma D sf1_1 using
-       * spinor_field_eq_gamma_ti_spinor_field(double*r, int gid, double*s, unsigned int N)
-       * from cvc_utils.cpp
-       ***************************************************************************/
-      spinor_field_eq_gamma_ti_spinor_field( spinor_field_3[1], gamma_id[igamma][ig], spinor_field_3[0], VOLUME );
-      
-      /***************************************************************************
-       * Part II - calculate zchi <- sf1_0^dag gamma D sf1_1:
-       * calculate scalar product for spinor fields, i.e. sf1_0^dag gamma D sf1_1, using
-       * spinor_scalar_product_co(complex *w, double *xi, double *phi, unsigned int V)
-       * from scalar_products.cpp
-       ***************************************************************************/
-      spinor_scalar_product_co( zchi_aux, spinor_field_1[0], spinor_field_3[1], VOLUME );
-      
-      /***************************************************************************
-       * Part III - calculate zchi <- sf1_0^dag gamma D sf1_1:
-       * sum up zchi contributions using
-       * _co_pl_eq_co(c1,c2)
-       * defined in cvc_complex.h
-       ***************************************************************************/
-      _co_pl_eq_co( zchi_aux2, zchi_aux );
-      
-    } /* end of loop on Dirac gamma matrix indices mu */
-  } /* end of loop on Gamma structures */
+      _co_eq_re_by_co( zchi, pre, zchi_aux2 );
   
+      fprintf(stdout, "# [test_gradient_flow] gf_dt = %f; gf iteration %d; Zchi = %f + i%f\n", j*gf_dt, i, zchi->re, zchi->im );
   
-  int n_c = 3; /* colors of quarks are r, g, b */
-  int n_f = 3; /* contributing flavors are u, d, s */
-  int pre = (-2) * n_c * n_f * VOLUME;  
-  
-  _co_eq_re_by_co( zchi, pre, zchi_aux2 );
-  
-  fprintf(stdout, "# [test_gradient_flow] Zchi = %f + i%f\n", zchi->re, zchi->im );
-  
-  free( zchi_aux );
-  free( zchi_aux2 );
-  free( zchi );
-    
-  fini_2level_dtable ( &spinor_field_2 );
-  fini_2level_dtable ( &spinor_field_3 );
-  fini_1level_dtable ( &gauge_field_smeared );
-  
-  
-  
+    }  /* end of loop on i */
+
+
+    /***************************************************************************
+     * deallocate gf fields
+     ***************************************************************************/  
+    fini_2level_dtable ( &spinor_field_2 );
+    fini_2level_dtable ( &spinor_field_3 );
+    fini_1level_dtable ( &gauge_field_smeared );
+
+    free( zchi_aux );
+    free( zchi_aux2 );
+    free( zchi );
+
   
   /* write flowed source */
-  sprintf ( filename, "test_flowed_source.cvc" );
-  if ( ( exitstatus = write_propagator( spinor_field_1[0], filename, 0, g_propagator_precision) ) != 0 ) {
-    fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
-    EXIT(2);
-  }
+  //sprintf ( filename, "test_flowed_source.cvc" );
+  //if ( ( exitstatus = write_propagator( spinor_field_1[0], filename, 0, g_propagator_precision) ) != 0 ) {
+    //fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
+    //EXIT(2);
+  //}
   
   /* write flowed propagator */
-  sprintf ( filename, "test_flowed_propagator.cvc" );
-  if ( ( exitstatus = write_propagator( spinor_field_1[1], filename, 0, g_propagator_precision) ) != 0 ) {
-    fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
-    EXIT(2);
-  }
+  //sprintf ( filename, "test_flowed_propagator.cvc" );
+  //if ( ( exitstatus = write_propagator( spinor_field_1[1], filename, 0, g_propagator_precision) ) != 0 ) {
+    //fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
+    //EXIT(2);
+  //}
   
 #endif  /* of if def _GFLOW_CVC */
 
@@ -638,15 +668,16 @@ int main(int argc, char **argv) {
 
 
 
-  /***************************************************************************
-   * deallocate (static) fields
-   ***************************************************************************/
+    /***************************************************************************
+     * deallocate (static) fields
+     ***************************************************************************/
+    exitstatus = prepare_volume_source ( NULL, 0 );
+  
+    fini_2level_dtable ( &spinor_field_1 );
+  
+    flow_fwd_gauge_spinor_field ( NULL, NULL, 0, 0., 0, 0 );
 
-  exitstatus = init_timeslice_source_oet ( NULL, -1, NULL, 0, 0, -2 );
-
-  fini_2level_dtable ( &spinor_field_1 );
-
-  flow_fwd_gauge_spinor_field ( NULL, NULL, 0, 0., 0, 0 );
+  }  /* end of loop on j */
 
 #ifdef HAVE_LHPC_AFF
   /***************************************************************************
