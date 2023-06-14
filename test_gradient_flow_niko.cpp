@@ -107,9 +107,9 @@ int main(int argc, char **argv) {
   char filename[400];
   struct timeval ta, tb, start_time, end_time;
   int check_propagator_residual = 0;
-  unsigned int gf_niter = 10;
-  double gf_dt = 0.01;  /* minimum flow-time interval. All others are multiples of it. */
-  unsigned int nsamples = 1;
+  unsigned int gf_niter = 10;  /* total number od gradient flow iterations */
+  double gf_dt = 0.01;         /* minimum flow-time interval. All others are multiples of it. */
+  unsigned int nsamples = 1;   /* total number of stochastic samples */
 
 
 #ifdef HAVE_LHPC_AFF
@@ -368,6 +368,9 @@ int main(int argc, char **argv) {
 
 
 // START CODING FROM HERE:
+  for ( unsigned int isample = 0; isample < nsamples; isample++ ) /* loop on isample */
+  { 
+	  
     /***************************************************************************
      ***************************************************************************
      **
@@ -376,9 +379,9 @@ int main(int argc, char **argv) {
      ***************************************************************************
      ***************************************************************************/
 
-    double *** spinor_field_1 = init_3level_dtable ( 2, nsamples, _GSI( VOLUME+RAND ) );
+    double ** spinor_field_1 = init_2level_dtable ( 12, _GSI( ( VOLUME+RAND ) ) );
     if ( spinor_field_1 == NULL ) {
-      fprintf(stderr, "[test_gradient_flow] Error from init_3level_dtable %s %d\n", __FILE__, __LINE__ );
+      fprintf(stderr, "[test_gradient_flow] Error from init_2level_dtable %s %d\n", __FILE__, __LINE__ );
       EXIT(44);
     }
 
@@ -386,26 +389,24 @@ int main(int argc, char **argv) {
      * prepare up-type stoch. propagator from stoch. volume source
      ***************************************************************************/
 
-    double *** spinor_work  = init_3level_dtable ( 2, nsamples, _GSI( VOLUME+RAND ) );
+    double ** spinor_work  = init_2level_dtable ( 2, _GSI( VOLUME+RAND ) );
     if ( spinor_work == NULL ) {
-      fprintf(stderr, "[test_gradient_flow] Error from init_3level_dtable %s %d\n", __FILE__, __LINE__ );
+      fprintf(stderr, "[test_gradient_flow] Error from init_2level_dtable %s %d\n", __FILE__, __LINE__ );
       EXIT(44);
     }
 
-  for ( unsigned int isample = 0; isample < nsamples; isample++)  /* loop on stochastic samples */
-  {
     /* set up a stochstic volume source sw0 */
-    exitstatus = prepare_volume_source ( spinor_work[0][isample], VOLUME );
+    exitstatus = prepare_volume_source ( spinor_work[0], VOLUME );
     if( exitstatus != 0 ) {
       fprintf(stderr, "[test_gradient_flow] Error from prepare_volume_source status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
       EXIT(123);
     }
 
     /* init sw1 */
-    memset ( spinor_work[1][isample], 0, sizeof_spinor_field );
+    memset ( spinor_work[1], 0, sizeof_spinor_field );
 
     /* sw1 <- D_up^-1 sw0 */
-    exitstatus = _TMLQCD_INVERT ( spinor_work[1][isample], spinor_work[0][isample], 0 );
+    exitstatus = _TMLQCD_INVERT ( spinor_work[1], spinor_work[0], 0 );
     if(exitstatus < 0) {
       fprintf(stderr, "[test_gradient_flow] Error from invert, status was %d %s %d\n", exitstatus, __FILE__, __LINE__ );
       EXIT(44);
@@ -415,31 +416,28 @@ int main(int argc, char **argv) {
      * copy spinor work field sw0 to spinor field sf1_0,
      * i.e. sf1_0 <- timeslice source
      ***************************************************************************/
-    memcpy ( spinor_field_1[0][isample], spinor_work[0][isample], sizeof_spinor_field );    
+    memcpy ( spinor_field_1[0], spinor_work[0], sizeof_spinor_field );    
   
     /***************************************************************************
      * copy spinor work field sw1 to spinor field sf1_1,
      * i.e. sf1_1 <- D_up^-1 sw0
      ***************************************************************************/
-    memcpy ( spinor_field_1[1][isample], spinor_work[1][isample], sizeof_spinor_field );
-  } /* end of loop on stochastic samples */
+    memcpy ( spinor_field_1[1], spinor_work[1], sizeof_spinor_field );
 
-  fini_3level_dtable ( &spinor_work );  
-
+    fini_2level_dtable ( &spinor_work );
 
 
 
-      /***************************************************************************
-       ***************************************************************************
-       **
-       ** Gradient Flow (GF) application iteration
-       **
-       ***************************************************************************
-       ***************************************************************************/
+
+    /***************************************************************************
+     ***************************************************************************
+     **
+     ** Gradient Flow (GF) application iteration
+     **
+     ***************************************************************************
+     ***************************************************************************/
 #ifdef _GFLOW_CVC
 
-  for ( unsigned int isample = 0; isample < nsamples; isample++)  /* loop on stochastic samples */
-  {
     /***************************************************************************
      * prepare gauge field for GF
      ***************************************************************************/
@@ -455,26 +453,26 @@ int main(int argc, char **argv) {
     /***************************************************************************
      * prepare spinor fields for GF
      ***************************************************************************/
-    double *** spinor_field_2  = init_3level_dtable ( 2, nsamples, _GSI( VOLUME+RAND ) );
+    double ** spinor_field_2  = init_2level_dtable ( 2, _GSI( VOLUME+RAND ) );
     if ( spinor_field_2 == NULL ) {
-      fprintf(stderr, "[test_gradient_flow] Error from init_3level_dtable %s %d\n", __FILE__, __LINE__ );
+      fprintf(stderr, "[test_gradient_flow] Error from init_2level_dtable %s %d\n", __FILE__, __LINE__ );
       EXIT(44);
     }
   
     /* init sf2_0 and sf2_1 */
-    memset ( spinor_field_2[0][isample], 0, sizeof_spinor_field );
-    memset ( spinor_field_2[1][isample], 0, sizeof_spinor_field );
+    memset ( spinor_field_2[0], 0, sizeof_spinor_field );
+    memset ( spinor_field_2[1], 0, sizeof_spinor_field );
   
   
-    double *** spinor_field_3  = init_3level_dtable ( 2, nsamples, _GSI( VOLUME+RAND ) );
+    double ** spinor_field_3  = init_2level_dtable ( 2, _GSI( VOLUME+RAND ) );
     if ( spinor_field_3 == NULL ) {
-      fprintf(stderr, "[test_gradient_flow] Error from init_3level_dtable %s %d\n", __FILE__, __LINE__ );
+      fprintf(stderr, "[test_gradient_flow] Error from init_2level_dtable %s %d\n", __FILE__, __LINE__ );
       EXIT(44);
     }
   
     /* init sf3_0 and sf3_1 */
-    memset ( spinor_field_3[0][isample], 0, sizeof_spinor_field );
-    memset ( spinor_field_3[1][isample], 0, sizeof_spinor_field );
+    memset ( spinor_field_3[0], 0, sizeof_spinor_field );
+    memset ( spinor_field_3[1], 0, sizeof_spinor_field );
   
 
     /***************************************************************************
@@ -486,14 +484,15 @@ int main(int argc, char **argv) {
   
 
     /***************************************************************************
-     * prepare Dirac gamma matrices
+     * prepare Dirac gamma matrices (for GF iterations)
      ***************************************************************************/
-    const int gamma_sets = 4;
-    int const gamma_num[4] = {4, 4, 1, 1}; /* {4, 4, 1, 1} because in 1st and 2nd row of gamma_id all entries (i.e. ig)
-                                              are relevant and in 3rd and 4th row only the first entry being the index
-                                              of the gamma_4 and gamma_5, respectively */
+    int const gamma_sets = 1;               /* only use gamma_0, gamma_1, gamma_2 and gamma_3 in for loop on Gamma structures;
+                                               hence, only igamma = 0 => gamma_sets = 1, cf. for loop on Gamma structures */
+    int const gamma_num[4] = {4, 4, 1, 1};  /* {4, 4, 1, 1} because in 1st and 2nd row of gamma_id all entries (i.e. ig)
+                                               are relevant and in 3rd and 4th row only the first entry being the index
+                                               of the gamma_4 and gamma_5, respectively */
                                             
-    int const gamma_id[4][4] = {           /* gamma_id[igamma][ig] */
+    int const gamma_id[4][4] = {            /* gamma_id[igamma][ig] */
       { 0,  1,  2,  3 },
       { 6,  7,  8,  9 },
       { 4, -1, -1, -1 },
@@ -510,7 +509,7 @@ int main(int argc, char **argv) {
      ***************************************************************************
      ***************************************************************************/
    
-    for ( unsigned int i = 0; i < gf_niter; i++ ) /* loop on gradient flow iterations; flowtime is given by i*gf_dt */
+    for ( unsigned int i = 0; i <= gf_niter; i++ ) /* loop on gradient flow iterations; flowtime is given by i*gf_dt */
     {
 
       if ( i > 0 ) {
@@ -518,7 +517,7 @@ int main(int argc, char **argv) {
         /* flow timeslice source sf1_0 and gauge field */
         gettimeofday ( &ta, (struct timezone *)NULL );
 
-        flow_fwd_gauge_spinor_field ( gauge_field_smeared, spinor_field_1[0][isample], 1, gf_dt, 1, 1 ); // returns flowed version of spinor_field_1[0][isample] and of gauge_field_smeared
+        flow_fwd_gauge_spinor_field ( gauge_field_smeared, spinor_field_1[0], 1, gf_dt, 1, 1 ); // returns flowed version of spinor_field_1[0] and of gauge_field_smeared
 
         gettimeofday ( &tb, (struct timezone *)NULL );
         show_time ( &ta, &tb, "test_gradient_flow", "flow_fwd_gauge_spinor_field", g_cart_id == 0 );
@@ -526,19 +525,19 @@ int main(int argc, char **argv) {
         /* flow propagator sf1_1 <- D_up^-1 sw0 and gauge field */
         gettimeofday ( &ta, (struct timezone *)NULL );
 
-        flow_fwd_gauge_spinor_field ( gauge_field_smeared, spinor_field_1[1][isample], 1, gf_dt, 1, 1 ); // returns flowed version of spinor_field_1[1][isample] and of gauge_field_smeared
+        flow_fwd_gauge_spinor_field ( gauge_field_smeared, spinor_field_1[1], 1, gf_dt, 1, 1 ); // returns flowed version of spinor_field_1[1] and of gauge_field_smeared
 
         gettimeofday ( &tb, (struct timezone *)NULL );
         show_time ( &ta, &tb, "test_gradient_flow", "flow_fwd_gauge_spinor_field", g_cart_id == 0 );
 
       }
 
-        //sprintf ( filename, "flowed_propagator.c%d.t%6.4f.n%d.isample%d", Nconf, i*gf_dt, i, isample );
-        //exitstatus = write_propagator( spinor_field_1[1][isample], filename, 0, g_propagator_precision);
-        //if ( exitstatus != 0 ) {
-          //fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
-          //EXIT(2);
-        //}
+      //sprintf ( filename, "flowed_propagator.c%d.t%6.4f.n%d", Nconf, i*gf_dt, i );
+      //exitstatus = write_propagator( spinor_field_1[1], filename, 0, g_propagator_precision);
+      //if ( exitstatus != 0 ) {
+        //fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
+        //EXIT(2);
+      //}
 
 
       /***************************************************************************
@@ -578,26 +577,25 @@ int main(int argc, char **argv) {
       /***************************************************************************
        * loop on Gamma structures (v, pv, s, ps) and gamma matrix indices mu
        ***************************************************************************/
-      /* for ( int igamma = 0; igamma < gamma_sets; igamma++ ) */
-      for ( int igamma = 0; igamma < 1; igamma++ ) /* loop on Gamma structures; only use gamma_0, gamma_1, gamma_2 and gamma_3 here. Hence, only igamma = 0. */
+      for ( int igamma = 0; igamma < gamma_sets; igamma++ )  /* loop on Gamma structures; only use gamma_0, gamma_1, gamma_2 and gamma_3 here; hence, only igamma = 0 => gamma_sets = 1 */
       {
-        for ( int ig = 0; ig < gamma_num[igamma]; ig++ ) { /* loop on Dirac gamma matrix indices mu */
+        for ( int ig = 0; ig < gamma_num[igamma]; ig++ ) {  /* loop on Dirac gamma matrix indices mu */
           /***************************************************************************
            * calculate fwd/ bwd displacement for construction of covariant derivative:
            * spinor_field_eq_cov_displ_spinor_field ( double * const s, double * const r_in, int const mu, int const fbwd, double * const gauge_field )
            * from Q_phi.cpp
            ***************************************************************************/
           /* forward (fbwd = 0)*/
-          spinor_field_eq_cov_displ_spinor_field ( spinor_field_2[0][isample], spinor_field_1[1][isample], ig, 0, gauge_field_smeared );
+          spinor_field_eq_cov_displ_spinor_field ( spinor_field_2[0], spinor_field_1[1], ig, 0, gauge_field_smeared );
           /* backward (fbwd = 1)*/
-          spinor_field_eq_cov_displ_spinor_field ( spinor_field_2[1][isample], spinor_field_1[1][isample], ig, 1, gauge_field_smeared );
+          spinor_field_eq_cov_displ_spinor_field ( spinor_field_2[1], spinor_field_1[1], ig, 1, gauge_field_smeared );
       
           /***************************************************************************
            * calculate covariant derivative of propagator sf3_0 <- D sf1_1:
            * spinor_field_eq_spinor_field_mi_spinor_field(double*r, double*s, double*t, unsigned int N)
            * from cvc_utils.cpp, i.e "r = s - t"
            ***************************************************************************/
-          spinor_field_eq_spinor_field_mi_spinor_field( spinor_field_3[0][isample], spinor_field_2[0][isample], spinor_field_2[1][isample], VOLUME );
+          spinor_field_eq_spinor_field_mi_spinor_field( spinor_field_3[0], spinor_field_2[0], spinor_field_2[1], VOLUME );
       
           /***************************************************************************
            * Part I - calculate zchi_aux2 <- sf1_0^dag gamma D sf1_1:
@@ -605,7 +603,7 @@ int main(int argc, char **argv) {
            * spinor_field_eq_gamma_ti_spinor_field(double*r, int gid, double*s, unsigned int N)
            * from cvc_utils.cpp
            ***************************************************************************/
-          spinor_field_eq_gamma_ti_spinor_field( spinor_field_3[1][isample], gamma_id[igamma][ig], spinor_field_3[0][isample], VOLUME );
+          spinor_field_eq_gamma_ti_spinor_field( spinor_field_3[1], gamma_id[igamma][ig], spinor_field_3[0], VOLUME );
       
           /***************************************************************************
            * Part II - calculate zchi_aux2 <- sf1_0^dag gamma D sf1_1:
@@ -613,7 +611,7 @@ int main(int argc, char **argv) {
            * spinor_scalar_product_co(complex *w, double *xi, double *phi, unsigned int V)
            * from scalar_products.cpp
            ***************************************************************************/
-          spinor_scalar_product_co( zchi_aux, spinor_field_1[0][isample], spinor_field_3[1][isample], VOLUME );
+          spinor_scalar_product_co( zchi_aux, spinor_field_1[0], spinor_field_3[1], VOLUME );
       
           /***************************************************************************
            * Part III - calculate zchi_aux2 <- sf1_0^dag gamma D sf1_1:
@@ -636,7 +634,9 @@ int main(int argc, char **argv) {
        ***************************************************************************/
       _co_eq_re_by_co( zchi, pre, zchi_aux2 );
   
-      fprintf(stdout, "# [test_gradient_flow] gf_dt = %f; isample = %d; gf_iteration = %d; t = %f; Zchi_re = %f; Zchi_im = %f\n", gf_dt, isample, i, i*gf_dt, zchi->re, zchi->im );
+      
+      //fprintf(stdout, "# [test_gradient_flow] gf_dt = %f; isample = %d; gf_iteration = %d; t = %f; Zchi_re = %f; Zchi_im = %f\n", gf_dt, isample, i, i*gf_dt, zchi->re, zchi->im );
+      fprintf(stdout, "%f %d %d %f %f %f\n", gf_dt, isample, i, i*gf_dt, zchi->re, zchi->im );
   
     }  /* end of loop on i */
 
@@ -644,15 +644,13 @@ int main(int argc, char **argv) {
     /***************************************************************************
      * deallocate gf fields
      ***************************************************************************/  
-    fini_3level_dtable ( &spinor_field_2 );
-    fini_3level_dtable ( &spinor_field_3 );
+    fini_2level_dtable ( &spinor_field_2 );
+    fini_2level_dtable ( &spinor_field_3 );
     fini_1level_dtable ( &gauge_field_smeared );
 
     free( zchi_aux );
     free( zchi_aux2 );
     free( zchi );
-      
-    flow_fwd_gauge_spinor_field ( NULL, NULL, 0, 0., 0, 0 );
 
   
   /* write flowed source */
@@ -668,21 +666,24 @@ int main(int argc, char **argv) {
     //fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
     //EXIT(2);
   //}
-
-  }  /* end of loop on isamples */
-
+  
 #endif  /* of if def _GFLOW_CVC */
 
 
 
 
-  /***************************************************************************
-   * deallocate (static) fields
-   ***************************************************************************/
-  exitstatus = prepare_volume_source ( NULL, 0 );
-  
-  fini_3level_dtable ( &spinor_field_1 );
-  
+
+    /***************************************************************************
+     * deallocate (static) fields
+     ***************************************************************************/
+    exitstatus = prepare_volume_source ( NULL, 0 );
+    fini_2level_dtable ( &spinor_field_1 );
+    flow_fwd_gauge_spinor_field ( NULL, NULL, 0, 0., 0, 0 );
+
+  }  /* end of loop on isample */
+  /***************************************************************************/
+  /***************************************************************************/
+
 
 
 #ifdef HAVE_LHPC_AFF
@@ -697,9 +698,6 @@ int main(int argc, char **argv) {
     }
   }  /* end of if io_proc == 2 */
 #endif  /* of ifdef HAVE_LHPC_AFF */
-
-  /***************************************************************************/
-  /***************************************************************************/
 
   /***************************************************************************
    * free the allocated memory, finalize
