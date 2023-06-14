@@ -111,7 +111,6 @@ int main(int argc, char **argv) {
   double gf_dt = 0.01;         /* minimum flow-time interval. All others are multiples of it. */
   unsigned int nsamples = 1;   /* total number of stochastic samples */
 
-
 #ifdef HAVE_LHPC_AFF
   struct AffWriter_s *affw = NULL;
 #endif
@@ -466,9 +465,9 @@ int main(int argc, char **argv) {
     /***************************************************************************
      * prepare complex numbers
      ***************************************************************************/
-    complex *zchi_aux = ( complex* ) malloc ( VOLUME * sizeof ( complex ) );
-    complex *zchi_aux2 = ( complex* ) malloc ( VOLUME * sizeof ( complex ) );
-    complex *zchi = ( complex* ) malloc ( VOLUME * sizeof ( complex ) );
+    complex *zchi_aux = ( complex* ) malloc ( sizeof ( complex ) );
+    complex *zchi_aux2 = ( complex* ) malloc ( sizeof ( complex ) );
+    complex *zchi = ( complex* ) malloc ( sizeof ( complex ) );
   
 
     /***************************************************************************
