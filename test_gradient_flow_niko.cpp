@@ -436,19 +436,7 @@ int main(int argc, char **argv) {
      **
      ***************************************************************************
      ***************************************************************************/
-#ifdef _GFLOW_CVC
-
-    /***************************************************************************
-     * prepare gauge field for GF
-     ***************************************************************************/
-    double * gauge_field_smeared = init_1level_dtable ( 72 * VOLUMEPLUSRAND );
-    if ( gauge_field_smeared == NULL ) {
-      fprintf(stderr, "[test_gradient_flow] Error from init_1level_dtable %s %d\n", __FILE__, __LINE__);
-      EXIT(3);
-    }
-  
-    memcpy ( gauge_field_smeared, gauge_field_with_phase, sizeof_gauge_field );
-  
+#ifdef _GFLOW_CVC  
 
     /***************************************************************************
      * prepare spinor fields for GF
@@ -509,8 +497,19 @@ int main(int argc, char **argv) {
      ***************************************************************************
      ***************************************************************************/
    
-    for ( unsigned int i = 0; i <= gf_niter; i++ ) /* loop on gradient flow iterations; flowtime is given by i*gf_dt */
+    for ( unsigned int i = 0; i < gf_niter; i++ ) /* loop on gradient flow iterations; flowtime is given by i*gf_dt */
     {
+      /***************************************************************************
+       * prepare gauge field for GF
+       ***************************************************************************/
+      double * gauge_field_smeared = init_1level_dtable ( 72 * VOLUMEPLUSRAND );
+      if ( gauge_field_smeared == NULL ) {
+        fprintf(stderr, "[test_gradient_flow] Error from init_1level_dtable %s %d\n", __FILE__, __LINE__);
+        EXIT(3);
+      }
+  
+      memcpy ( gauge_field_smeared, gauge_field_with_phase, sizeof_gauge_field );
+
 
       if ( i > 0 ) {
 
@@ -637,16 +636,20 @@ int main(int argc, char **argv) {
       
       //fprintf(stdout, "# [test_gradient_flow] gf_dt = %f; isample = %d; gf_iteration = %d; t = %f; Zchi_re = %f; Zchi_im = %f\n", gf_dt, isample, i, i*gf_dt, zchi->re, zchi->im );
       fprintf(stdout, "%f %d %d %f %f %f\n", gf_dt, isample, i, i*gf_dt, zchi->re, zchi->im );
+      
+      /***************************************************************************
+       * deallocate gf gauge field
+       ***************************************************************************/
+      fini_1level_dtable ( &gauge_field_smeared );
   
-    }  /* end of loop on i */
+    }  /* end of loop on gradient flow iterations i */
 
 
     /***************************************************************************
-     * deallocate gf fields
-     ***************************************************************************/  
+     * deallocate gf spinor fields
+     ***************************************************************************/
     fini_2level_dtable ( &spinor_field_2 );
     fini_2level_dtable ( &spinor_field_3 );
-    fini_1level_dtable ( &gauge_field_smeared );
 
     free( zchi_aux );
     free( zchi_aux2 );
