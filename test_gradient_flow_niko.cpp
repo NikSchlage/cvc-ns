@@ -107,9 +107,10 @@ int main(int argc, char **argv) {
   char filename[400];
   struct timeval ta, tb, start_time, end_time;
   int check_propagator_residual = 0;
-  unsigned int gf_niter = 10;  /* total number od gradient flow iterations */
-  double gf_dt = 0.01;         /* minimum flow-time interval. All others are multiples of it. */
+  unsigned int gf_niter = 10;  /* total number of gradient flow iterations within flow_fwd_gauge_spinor_field */
+  double gf_dt = 0.01;         /* small discretization step of flow time */
   unsigned int nsamples = 1;   /* total number of stochastic samples */
+  unsigned int nmeas = 1;      /* total number of gradient flow measurements */
 
 #ifdef HAVE_LHPC_AFF
   struct AffWriter_s *affw = NULL;
@@ -119,7 +120,7 @@ int main(int argc, char **argv) {
   MPI_Init(&argc, &argv);
 #endif
 
-  while ((c = getopt(argc, argv, "ch?f:e:n:s:")) != -1) {
+  while ((c = getopt(argc, argv, "ch?f:e:n:s:m:")) != -1) {
     switch (c) {
     case 'f':
       strcpy(filename, optarg);
@@ -136,6 +137,9 @@ int main(int argc, char **argv) {
       break;
     case 's':
       nsamples = atoi ( optarg );
+      break;
+    case 'm':
+      nmeas = atoi ( optarg );
       break;
     case 'h':
     case '?':
@@ -438,6 +442,25 @@ int main(int argc, char **argv) {
 #ifdef _GFLOW_CVC  
 
     /***************************************************************************
+     * prepare gauge fields for GF
+     ***************************************************************************/
+    double * gauge_field_smeared = init_1level_dtable ( 72 * VOLUMEPLUSRAND );
+    if ( gauge_field_smeared == NULL ) {
+      fprintf(stderr, "[test_gradient_flow] Error from init_1level_dtable %s %d\n", __FILE__, __LINE__);
+      EXIT(3);
+    }
+  
+    memcpy ( gauge_field_smeared, gauge_field_with_phase, sizeof_gauge_field );
+    
+    double * gauge_field_smeared_2 = init_1level_dtable ( 72 * VOLUMEPLUSRAND );
+    if ( gauge_field_smeared_2 == NULL ) {
+      fprintf(stderr, "[test_gradient_flow] Error from init_1level_dtable %s %d\n", __FILE__, __LINE__);
+      EXIT(3);
+    }
+  
+    memcpy ( gauge_field_smeared_2, gauge_field_smeared, sizeof_gauge_field );
+      
+    /***************************************************************************
      * prepare spinor fields for GF
      ***************************************************************************/
     double ** spinor_field_2  = init_2level_dtable ( 2, _GSI( VOLUME+RAND ) );
@@ -471,7 +494,7 @@ int main(int argc, char **argv) {
   
 
     /***************************************************************************
-     * prepare Dirac gamma matrices (for GF iterations)
+     * prepare Dirac gamma matrices
      ***************************************************************************/
     int const gamma_sets = 1;               /* only use gamma_0, gamma_1, gamma_2 and gamma_3 in for loop on Gamma structures;
                                                hence, only igamma = 0 => gamma_sets = 1, cf. for loop on Gamma structures */
@@ -496,26 +519,15 @@ int main(int argc, char **argv) {
      ***************************************************************************
      ***************************************************************************/
    
-    for ( unsigned int i = 0; i < gf_niter; i++ ) /* loop on gradient flow iterations; flowtime is given by i*gf_dt */
+    for ( unsigned int i = 0; i < nmeas; i++ ) /* flowtime is given by i*gf_niter*gf_dt */
     {
-      /***************************************************************************
-       * prepare gauge field for GF
-       ***************************************************************************/
-      double * gauge_field_smeared = init_1level_dtable ( 72 * VOLUMEPLUSRAND );
-      if ( gauge_field_smeared == NULL ) {
-        fprintf(stderr, "[test_gradient_flow] Error from init_1level_dtable %s %d\n", __FILE__, __LINE__);
-        EXIT(3);
-      }
-  
-      memcpy ( gauge_field_smeared, gauge_field_with_phase, sizeof_gauge_field );
-
 
       if ( i > 0 ) {
 
         /* flow timeslice source sf1_0 and gauge field */
         gettimeofday ( &ta, (struct timezone *)NULL );
 
-        flow_fwd_gauge_spinor_field ( gauge_field_smeared, spinor_field_1[0], 1, gf_dt, 1, 1 ); // returns flowed version of spinor_field_1[0] and of gauge_field_smeared
+        flow_fwd_gauge_spinor_field ( gauge_field_smeared, spinor_field_1[0], gf_niter, gf_dt, 1, 1 ); // returns flowed version of spinor_field_1[0] and of gauge_field_smeared
 
         gettimeofday ( &tb, (struct timezone *)NULL );
         show_time ( &ta, &tb, "test_gradient_flow", "flow_fwd_gauge_spinor_field", g_cart_id == 0 );
@@ -523,19 +535,35 @@ int main(int argc, char **argv) {
         /* flow propagator sf1_1 <- D_up^-1 sw0 and gauge field */
         gettimeofday ( &ta, (struct timezone *)NULL );
 
-        flow_fwd_gauge_spinor_field ( gauge_field_smeared, spinor_field_1[1], 1, gf_dt, 1, 1 ); // returns flowed version of spinor_field_1[1] and of gauge_field_smeared
+        flow_fwd_gauge_spinor_field ( gauge_field_smeared_2, spinor_field_1[1], gf_niter, gf_dt, 1, 1 ); // returns flowed version of spinor_field_1[1] and of gauge_field_smeared
 
         gettimeofday ( &tb, (struct timezone *)NULL );
         show_time ( &ta, &tb, "test_gradient_flow", "flow_fwd_gauge_spinor_field", g_cart_id == 0 );
 
       }
 
-      //sprintf ( filename, "flowed_propagator.c%d.t%6.4f.n%d", Nconf, i*gf_dt, i );
+      //sprintf ( filename, "flowed_propagator.c%d.t%6.4f.n%d", Nconf, i*gf_niter*gf_dt, i );
       //exitstatus = write_propagator( spinor_field_1[1], filename, 0, g_propagator_precision);
       //if ( exitstatus != 0 ) {
         //fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
         //EXIT(2);
       //}
+      
+      
+      /*
+      sprintf ( filename, "gauge_field_smeared.c%d.t%6.4f.n%d", Nconf, i*gf_niter*gf_dt, i );
+      exitstatus = write_propagator( gauge_field_smeared, filename, 0, g_propagator_precision);
+      if ( exitstatus != 0 ) {
+        fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
+        EXIT(2);
+      }
+      sprintf ( filename, "gauge_field_smeared_2.c%d.t%6.4f.n%d", Nconf, i*gf_niter*gf_dt, i );
+      exitstatus = write_propagator( gauge_field_smeared_2, filename, 0, g_propagator_precision);
+      if ( exitstatus != 0 ) {
+        fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
+        EXIT(2);
+      }
+      */
 
 
       /***************************************************************************
@@ -633,17 +661,17 @@ int main(int argc, char **argv) {
       _co_eq_re_by_co( zchi, pre, zchi_aux2 );
   
       
-      //fprintf(stdout, "# [test_gradient_flow] gf_dt = %f; isample = %d; gf_iteration = %d; t = %f; Zchi_re = %f; Zchi_im = %f\n", gf_dt, isample, i, i*gf_dt, zchi->re, zchi->im );
-      fprintf(stdout, "%f %d %d %f %f %f\n", gf_dt, isample, i, i*gf_dt, zchi->re, zchi->im );
-      
-      /***************************************************************************
-       * deallocate gf gauge field
-       ***************************************************************************/
-      fini_1level_dtable ( &gauge_field_smeared );
+      //fprintf(stdout, "# [test_gradient_flow] isample = %d; gf_iteration = %d; gf_dt = %f; t = %f; Zchi_re = %f; Zchi_im = %f\n", isample, i, gf_dt, i*gf_niter*gf_dt, zchi->re, zchi->im );
+      fprintf(stdout, "%d %d %f %f %f %f\n", isample, i, gf_dt, i*gf_niter*gf_dt, zchi->re, zchi->im );
   
-    }  /* end of loop on gradient flow iterations i */
+    }  /* end of loop on i */
 
-
+    /***************************************************************************
+     * deallocate gf gauge fields
+     ***************************************************************************/
+    fini_1level_dtable ( &gauge_field_smeared );
+    fini_1level_dtable ( &gauge_field_smeared_2 );
+      
     /***************************************************************************
      * deallocate gf spinor fields
      ***************************************************************************/
