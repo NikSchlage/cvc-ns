@@ -340,33 +340,6 @@ int main(int argc, char **argv) {
   }
 #endif
 
-  /* dummy solve */
-//  if ( g_read_propagator )  {
-//
-//    double ** spinor_work  = init_2level_dtable ( 2, _GSI( VOLUME+RAND ) );
-//    if ( spinor_work == NULL ) {
-//      fprintf(stderr, "[test_gradient_flow] Error from init_2level_dtable %s %d\n", __FILE__, __LINE__ );
-//      EXIT(44);
-//    }
-
-//    memset ( spinor_work[0], 0, sizeof_spinor_field );
-//    memset ( spinor_work[1], 0, sizeof_spinor_field );
-
-//    if ( g_cart_id == 0 ) spinor_work[0][0] = 1.;
-
-//    exitstatus = _TMLQCD_INVERT ( spinor_work[1], spinor_work[0], 0 );
-//    if(exitstatus < 0) {
-//      fprintf(stderr, "[test_gradient_flow] Error from invert, status was %d %s %d\n", exitstatus, __FILE__, __LINE__ );
-//      EXIT(44);
-//    }
-
-//    if ( check_propagator_residual ) {
-//      check_residual_clover ( &(spinor_work[1]), &(spinor_work[0]), gauge_field_with_phase, lmzz[0], 1 );
-//    }
-
-//    fini_2level_dtable ( &spinor_work );
-//  }
-
 
 
 
@@ -495,7 +468,26 @@ int main(int argc, char **argv) {
 
     /***************************************************************************
      * prepare Dirac gamma matrices
+     * cf. gamma.cpp: gamma_matrix_set( gamma_matrix_type *g, int id, double s )
      ***************************************************************************/
+    /*  vector (v) :                                       */
+    /*  gamma_0 = gamma_t         :    igamma = 0, ig = 0  */
+    /*  gamma_1 = gamma_x         :    igamma = 0, ig = 1  */
+    /*  gamma_2 = gamma_          :    igamma = 0, ig = 2  */
+    /*  gamma_3 = gamma_z         :    igamma = 0, ig = 3  */
+    
+    /*  pseudovector (pv) :                                */
+    /*  gamma_6 = gamma_5 gamma_t :    igamma = 1, ig = 0  */
+    /*  gamma_7 = gamma_5 gamma_x :    igamma = 1, ig = 1  */
+    /*  gamma_8 = gamma_5 gamma_y :    igamma = 1, ig = 2  */
+    /*  gamma_9 = gamma_5 gamma_z :    igamma = 1, ig = 3  */
+
+    /*  scalar (s) :                                       */
+    /*  gamma_4 = id              :    igamma = 2, ig = 0  */
+
+    /*  pseudoscalar (ps) :                                */
+    /*  gamma_5                   :    igamma = 3, ig = 0  */
+     
     int const gamma_sets = 1;               /* only use gamma_0, gamma_1, gamma_2 and gamma_3 in for loop on Gamma structures;
                                                hence, only igamma = 0 => gamma_sets = 1, cf. for loop on Gamma structures */
     int const gamma_num[4] = {4, 4, 1, 1};  /* {4, 4, 1, 1} because in 1st and 2nd row of gamma_id all entries (i.e. ig)
@@ -542,29 +534,6 @@ int main(int argc, char **argv) {
 
       }
 
-      //sprintf ( filename, "flowed_propagator.c%d.t%6.4f.n%d", Nconf, i*gf_niter*gf_dt, i );
-      //exitstatus = write_propagator( spinor_field_1[1], filename, 0, g_propagator_precision);
-      //if ( exitstatus != 0 ) {
-        //fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
-        //EXIT(2);
-      //}
-      
-      
-      /*
-      sprintf ( filename, "gauge_field_smeared.c%d.t%6.4f.n%d", Nconf, i*gf_niter*gf_dt, i );
-      exitstatus = write_propagator( gauge_field_smeared, filename, 0, g_propagator_precision);
-      if ( exitstatus != 0 ) {
-        fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
-        EXIT(2);
-      }
-      sprintf ( filename, "gauge_field_smeared_2.c%d.t%6.4f.n%d", Nconf, i*gf_niter*gf_dt, i );
-      exitstatus = write_propagator( gauge_field_smeared_2, filename, 0, g_propagator_precision);
-      if ( exitstatus != 0 ) {
-        fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
-        EXIT(2);
-      }
-      */
-
 
       /***************************************************************************
        ***************************************************************************
@@ -573,31 +542,7 @@ int main(int argc, char **argv) {
        **
        ***************************************************************************
        ***************************************************************************/
-     
-//  /***************************************************************************
-//   * set the Dirac gamma matrices,
-//   * cf. gamma.cpp: gamma_matrix_set ( gamma_matrix_type *g, int id, double s )
-//   ***************************************************************************/
-//  gamma_matrix_type gamma_list[4][4];
-//  /* vector (v) */
-//  gamma_matrix_set( &( gamma_list[0][0] ), 0, 1. );  /*  gamma_0 = gamma_t */         // igamma = 0, ig = 0
-//  gamma_matrix_set( &( gamma_list[0][1] ), 1, 1. );  /*  gamma_1 = gamma_x */         // igamma = 0, ig = 1
-//  gamma_matrix_set( &( gamma_list[0][2] ), 2, 1. );  /*  gamma_2 = gamma_y */         // igamma = 0, ig = 2
-//  gamma_matrix_set( &( gamma_list[0][3] ), 3, 1. );  /*  gamma_3 = gamma_z */         // igamma = 0, ig = 3
-//  /* pseudovector (pv) */
-//  gamma_matrix_set( &( gamma_list[1][0] ), 6, 1. );  /*  gamma_6 = gamma_5 gamma_t */ // igamma = 1, ig = 0
-//  gamma_matrix_set( &( gamma_list[1][1] ), 7, 1. );  /*  gamma_7 = gamma_5 gamma_x */ // igamma = 1, ig = 1
-//  gamma_matrix_set( &( gamma_list[1][2] ), 8, 1. );  /*  gamma_8 = gamma_5 gamma_y */ // igamma = 1, ig = 2
-//  gamma_matrix_set( &( gamma_list[1][3] ), 9, 1. );  /*  gamma_9 = gamma_5 gamma_z */ // igamma = 1, ig = 3
-//  /* scalar (s) */
-//  gamma_matrix_set( &( gamma_list[2][0] ), 4, 1. );  /*  gamma_4 = id */              // igamma = 2, ig = 0
-//  /* pseudoscalar (ps) */
-//  gamma_matrix_set( &( gamma_list[3][0] ), 5, 1. );  /*  gamma_5 */                   // igamma = 3, ig = 0
-//
-//  gamma_matrix_type gammafive;
-//  gamma_matrix_set( &gammafive, 5, 1. );  /*  gamma_5 */
-  
-  
+       
       _co_eq_zero( zchi_aux2 );
   
       /***************************************************************************
@@ -681,26 +626,8 @@ int main(int argc, char **argv) {
     free( zchi_aux );
     free( zchi_aux2 );
     free( zchi );
-
-  
-  /* write flowed source */
-  //sprintf ( filename, "test_flowed_source.cvc" );
-  //if ( ( exitstatus = write_propagator( spinor_field_1[0], filename, 0, g_propagator_precision) ) != 0 ) {
-    //fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
-    //EXIT(2);
-  //}
-  
-  /* write flowed propagator */
-  //sprintf ( filename, "test_flowed_propagator.cvc" );
-  //if ( ( exitstatus = write_propagator( spinor_field_1[1], filename, 0, g_propagator_precision) ) != 0 ) {
-    //fprintf(stderr, "[test_gradient_flow] Error from write_propagator, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
-    //EXIT(2);
-  //}
   
 #endif  /* of if def _GFLOW_CVC */
-
-
-
 
 
     /***************************************************************************
@@ -713,6 +640,7 @@ int main(int argc, char **argv) {
   }  /* end of loop on isample */
   /***************************************************************************/
   /***************************************************************************/
+
 
 
 
