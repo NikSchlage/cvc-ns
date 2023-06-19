@@ -121,6 +121,7 @@ int main(int argc, char **argv) {
 #endif
 
   while ((c = getopt(argc, argv, "ch?f:e:n:s:m:")) != -1) {
+//  while ((c = getopt(argc, argv, "ch?f:e:n:s:m:")) != -1) {
     switch (c) {
     case 'f':
       strcpy(filename, optarg);
@@ -138,9 +139,9 @@ int main(int argc, char **argv) {
     case 's':
       nsamples = atoi ( optarg );
       break;
-    case 'm':
-      nmeas = atoi ( optarg );
-      break;
+//    case 'm':
+//      nmeas = atoi ( optarg );
+//      break;
     case 'h':
     case '?':
     default:
@@ -510,16 +511,26 @@ int main(int argc, char **argv) {
      **
      ***************************************************************************
      ***************************************************************************/
-   
-    for ( unsigned int i = 0; i < nmeas; i++ ) /* flowtime is given by i*gf_niter*gf_dt */
+    int gf_niter_tst[20] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 5, 5, 5 };
+    double gf_dt_tst[20] = { 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01 };
+    
+    double gf_t = 0.;
+    unsigned int nmeas = sizeof(gf_niter_tst) / sizeof(gf_niter_tst[0]);
+    unsigned int nmeas2 = sizeof(gf_dt_tst) / sizeof(gf_dt_tst[0]);
+    
+    if ( nmeas / nmeas2  != 1 ) {
+      fprintf(stderr, "[test_gradient_flow] Error, size of gf_niter and gf_dt must be equal!", __FILE__, __LINE__ );
+      EXIT(44);
+    }
+    
+     
+    for ( unsigned int i = 0; i < nmeas; i++ )
     {
-
-      if ( i > 0 ) {
-
+		
         /* flow timeslice source sf1_0 and gauge field */
         gettimeofday ( &ta, (struct timezone *)NULL );
 
-        flow_fwd_gauge_spinor_field ( gauge_field_smeared, spinor_field_1[0], gf_niter, gf_dt, 1, 1 ); // returns flowed version of spinor_field_1[0] and of gauge_field_smeared
+        flow_fwd_gauge_spinor_field ( gauge_field_smeared, spinor_field_1[0], gf_niter_tst[i], gf_dt_tst[i], 1, 1 ); // returns flowed version of spinor_field_1[0] and of gauge_field_smeared
 
         gettimeofday ( &tb, (struct timezone *)NULL );
         show_time ( &ta, &tb, "test_gradient_flow", "flow_fwd_gauge_spinor_field", g_cart_id == 0 );
@@ -527,12 +538,10 @@ int main(int argc, char **argv) {
         /* flow propagator sf1_1 <- D_up^-1 sw0 and gauge field */
         gettimeofday ( &ta, (struct timezone *)NULL );
 
-        flow_fwd_gauge_spinor_field ( gauge_field_smeared_2, spinor_field_1[1], gf_niter, gf_dt, 1, 1 ); // returns flowed version of spinor_field_1[1] and of gauge_field_smeared
+        flow_fwd_gauge_spinor_field ( gauge_field_smeared_2, spinor_field_1[1], gf_niter_tst[i], gf_dt_tst[i], 1, 1 ); // returns flowed version of spinor_field_1[1] and of gauge_field_smeared
 
         gettimeofday ( &tb, (struct timezone *)NULL );
         show_time ( &ta, &tb, "test_gradient_flow", "flow_fwd_gauge_spinor_field", g_cart_id == 0 );
-
-      }
 
 
       /***************************************************************************
@@ -606,8 +615,10 @@ int main(int argc, char **argv) {
       _co_eq_re_by_co( zchi, pre, zchi_aux2 );
   
       
-      //fprintf(stdout, "# [test_gradient_flow] isample = %d; gf_iteration = %d; gf_dt = %f; t = %f; Zchi_re = %f; Zchi_im = %f\n", isample, i, gf_dt, i*gf_niter*gf_dt, zchi->re, zchi->im );
-      fprintf(stdout, "%d %d %f %f %f %f\n", isample, i, gf_dt, i*gf_niter*gf_dt, zchi->re, zchi->im );
+      //fprintf( stdout, "# [test_gradient_flow] isample = %d; gf_t = %f; Zchi_re = %f; Zchi_im = %f\n", isample, gf_t, zchi->re, zchi->im );
+      fprintf( stdout, "%d %f %f %f\n", isample, gf_t, zchi->re, zchi->im );
+      
+      gf_t += gf_niter_tst[i] * gf_dt_tst[i];  /* flowtime is given by gf_t += gf_niter[i]*gf_dt[i] */
   
     }  /* end of loop on i */
 
