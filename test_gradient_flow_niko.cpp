@@ -597,7 +597,7 @@ int main(int argc, char **argv) {
           spinor_scalar_product_co( zchi_aux, spinor_field_1[0], spinor_field_3[1], VOLUME );
       
           /***************************************************************************
-           * Part III - calculate Dirac trace zchi_aux2 <- sf1_0^dag gamma D sf1_1:
+           * Part III - calculate zchi_aux2 <- sf1_0^dag gamma D sf1_1:
            * sum up zchi_aux contributions using
            * _co_pl_eq_co(c1,c2)
            * defined in cvc_complex.h
