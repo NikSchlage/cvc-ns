@@ -120,8 +120,7 @@ int main(int argc, char **argv) {
   MPI_Init(&argc, &argv);
 #endif
 
-  while ((c = getopt(argc, argv, "ch?f:e:n:s:m:")) != -1) {
-//  while ((c = getopt(argc, argv, "ch?f:e:n:s:m:")) != -1) {
+  while ((c = getopt(argc, argv, "ch?f:e:n:s:")) != -1) {
     switch (c) {
     case 'f':
       strcpy(filename, optarg);
@@ -139,9 +138,6 @@ int main(int argc, char **argv) {
     case 's':
       nsamples = atoi ( optarg );
       break;
-//    case 'm':
-//      nmeas = atoi ( optarg );
-//      break;
     case 'h':
     case '?':
     default:
@@ -466,6 +462,7 @@ int main(int argc, char **argv) {
     complex *zchi_aux2 = ( complex* ) malloc ( sizeof ( complex ) );
     complex *zchi = ( complex* ) malloc ( sizeof ( complex ) );
   
+    //complex zchi = {0, 0};
 
     /***************************************************************************
      * prepare Dirac gamma matrices
@@ -519,12 +516,6 @@ int main(int argc, char **argv) {
     
     double gf_t = 0.;
     unsigned int nmeas = sizeof(gf_niter_tst) / sizeof(gf_niter_tst[0]);
-    unsigned int nmeas2 = sizeof(gf_dt_tst) / sizeof(gf_dt_tst[0]);
-    
-    if ( nmeas / nmeas2  != 1 ) {
-      fprintf(stderr, "[test_gradient_flow] Error, size of gf_niter and gf_dt must be equal!", __FILE__, __LINE__ );
-      EXIT(44);
-    }
     
      
     for ( unsigned int i = 0; i < nmeas; i++ )
