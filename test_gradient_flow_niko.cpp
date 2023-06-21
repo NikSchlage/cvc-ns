@@ -458,11 +458,9 @@ int main(int argc, char **argv) {
     /***************************************************************************
      * prepare complex numbers
      ***************************************************************************/
-    complex *zchi_aux = ( complex* ) malloc ( sizeof ( complex ) );
-    complex *zchi_aux2 = ( complex* ) malloc ( sizeof ( complex ) );
-    complex *zchi = ( complex* ) malloc ( sizeof ( complex ) );
-  
-    //complex zchi = {0, 0};
+    complex zchi_aux = {0., 0.};
+    complex zchi_aux2 = {0., 0.};
+    complex zchi = {0., 0.};
 
     /***************************************************************************
      * prepare Dirac gamma matrices
@@ -546,7 +544,7 @@ int main(int argc, char **argv) {
        ***************************************************************************
        ***************************************************************************/
        
-      _co_eq_zero( zchi_aux2 );
+      _co_eq_zero( &zchi_aux2 );
   
       /***************************************************************************
        * loop on Gamma structures (v, pv, s, ps) and gamma matrix indices mu
@@ -585,7 +583,7 @@ int main(int argc, char **argv) {
            * spinor_scalar_product_co(complex *w, double *xi, double *phi, unsigned int V)
            * from scalar_products.cpp
            ***************************************************************************/
-          spinor_scalar_product_co( zchi_aux, spinor_field_1[0], spinor_field_3[1], VOLUME );
+          spinor_scalar_product_co( &zchi_aux, spinor_field_1[0], spinor_field_3[1], VOLUME );
       
           /***************************************************************************
            * Part III - calculate zchi_aux2 <- sf1_0^dag gamma D sf1_1:
@@ -593,7 +591,7 @@ int main(int argc, char **argv) {
            * _co_pl_eq_co(c1,c2)
            * defined in cvc_complex.h
            ***************************************************************************/
-          _co_pl_eq_co( zchi_aux2, zchi_aux );
+          _co_pl_eq_co( &zchi_aux2, &zchi_aux );
       
         } /* end of loop on Dirac gamma matrix indices mu */
       } /* end of loop on Gamma structures */
@@ -603,11 +601,11 @@ int main(int argc, char **argv) {
        * Due to closed fermion loop Wick contraction, multiply with factor -1:
        * zchi <- (-1) * zchi_aux2
        ***************************************************************************/
-      _co_eq_re_by_co( zchi, -1, zchi_aux2 );
+      _co_eq_re_by_co( &zchi, -1, &zchi_aux2 );
   
       
-      //fprintf( stdout, "# [test_gradient_flow] isample = %d; gf_t = %f; Zchi_re = %f; Zchi_im = %f\n", isample, gf_t, zchi->re, zchi->im );
-      fprintf( stdout, "%d %f %f %f\n", isample, gf_t, zchi->re, zchi->im );
+      //fprintf( stdout, "# [test_gradient_flow] isample = %d; gf_t = %f; Zchi_re = %f; Zchi_im = %f\n", isample, gf_t, zchi.re, zchi.im );
+      fprintf( stdout, "%d %f %f %f\n", isample, gf_t, zchi.re, zchi.im );
       
       gf_t += gf_niter_tst[i] * gf_dt_tst[i];  /* flowtime is given by gf_t += gf_niter[i]*gf_dt[i] */
   
@@ -624,10 +622,6 @@ int main(int argc, char **argv) {
      ***************************************************************************/
     fini_2level_dtable ( &spinor_field_2 );
     fini_2level_dtable ( &spinor_field_3 );
-
-    free( zchi_aux );
-    free( zchi_aux2 );
-    free( zchi );
   
 #endif  /* of if def _GFLOW_CVC */
 
