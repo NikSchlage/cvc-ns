@@ -471,6 +471,8 @@ int main(int argc, char **argv) {
      * prepare Dirac gamma matrices
      * cf. gamma.cpp: gamma_matrix_set( gamma_matrix_type *g, int id, double s )
      ***************************************************************************/
+     
+    /*=====================================================*/
     /*  vector (v) :                                       */
     /*  gamma_0 = gamma_t         :    igamma = 0, ig = 0  */
     /*  gamma_1 = gamma_x         :    igamma = 0, ig = 1  */
@@ -488,18 +490,19 @@ int main(int argc, char **argv) {
 
     /*  pseudoscalar (ps) :                                */
     /*  gamma_5                   :    igamma = 3, ig = 0  */
+    /*=====================================================*/
+    
+    int const gamma_id[4][4] = {            /* gamma_id[igamma][ig] */
+      { 0,  1,  2,  3 },
+      { 6,  7,  8,  9 },
+      { 4, -1, -1, -1 },
+      { 5, -1, -1, -1 } };
      
     int const gamma_sets = 1;               /* only use gamma_0, gamma_1, gamma_2 and gamma_3 in for loop on Gamma structures;
                                                hence, only igamma = 0 => gamma_sets = 1, cf. for loop on Gamma structures */
     int const gamma_num[4] = {4, 4, 1, 1};  /* {4, 4, 1, 1} because in 1st and 2nd row of gamma_id all entries (i.e. ig)
                                                are relevant and in 3rd and 4th row only the first entry being the index
                                                of the gamma_4 and gamma_5, respectively */
-                                            
-    int const gamma_id[4][4] = {            /* gamma_id[igamma][ig] */
-      { 0,  1,  2,  3 },
-      { 6,  7,  8,  9 },
-      { 4, -1, -1, -1 },
-      { 5, -1, -1, -1 } };
   
   
   
@@ -594,7 +597,7 @@ int main(int argc, char **argv) {
           spinor_scalar_product_co( zchi_aux, spinor_field_1[0], spinor_field_3[1], VOLUME );
       
           /***************************************************************************
-           * Part III - calculate zchi_aux2 <- sf1_0^dag gamma D sf1_1:
+           * Part III - calculate Dirac trace zchi_aux2 <- sf1_0^dag gamma D sf1_1:
            * sum up zchi_aux contributions using
            * _co_pl_eq_co(c1,c2)
            * defined in cvc_complex.h
@@ -603,16 +606,13 @@ int main(int argc, char **argv) {
       
         } /* end of loop on Dirac gamma matrix indices mu */
       } /* end of loop on Gamma structures */
-  
-  
-      int n_c = 3; /* colors of quarks are r, g, b */
-      int n_f = 3; /* contributing flavors are u, d, s */
-      int pre = (-2) * n_c * n_f * VOLUME;  
+      
   
       /***************************************************************************
-       * calculate zchi <- (-2 * n_c * n_f * VOLUME ) / zchi_aux2
+       * Due to closed fermion loop Wick contraction, multiply with factor -1:
+       * zchi <- (-1) * zchi_aux2
        ***************************************************************************/
-      _co_eq_re_by_co( zchi, pre, zchi_aux2 );
+      _co_eq_re_by_co( zchi, -1, zchi_aux2 );
   
       
       //fprintf( stdout, "# [test_gradient_flow] isample = %d; gf_t = %f; Zchi_re = %f; Zchi_im = %f\n", isample, gf_t, zchi->re, zchi->im );
