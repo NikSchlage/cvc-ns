@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
   int exitstatus;
   int io_proc = -1;
   char filename[400];
-  struct timeval ta, tb, start_time, end_time;
+  struct timeval ta1, tb1, ta2, tb2, start_time, end_time;
   int check_propagator_residual = 0;
   unsigned int gf_niter = 10;  /* total number of gradient flow iterations within flow_fwd_gauge_spinor_field */
   double gf_dt = 0.01;         /* small discretization step of flow time */
@@ -342,7 +342,8 @@ int main(int argc, char **argv) {
 
 // START CODING FROM HERE:
   for ( unsigned int isample = 0; isample < nsamples; isample++ ) /* loop on isample */
-  { 
+  {
+    gettimeofday ( &ta1, (struct timezone *)NULL );
 	  
     /***************************************************************************
      ***************************************************************************
@@ -378,12 +379,17 @@ int main(int argc, char **argv) {
     /* init sw1 */
     memset ( spinor_work[1], 0, sizeof_spinor_field );
 
+    gettimeofday ( &ta2, (struct timezone *)NULL );
+
     /* sw1 <- D_up^-1 sw0 */
     exitstatus = _TMLQCD_INVERT ( spinor_work[1], spinor_work[0], 0 );
     if(exitstatus < 0) {
       fprintf(stderr, "[test_gradient_flow] Error from invert, status was %d %s %d\n", exitstatus, __FILE__, __LINE__ );
       EXIT(44);
     }
+    
+    gettimeofday ( &tb2, (struct timezone *)NULL );
+    show_time ( &ta2, &tb2, "test_gradient_flow", "_perform_inversion", g_cart_id == 0 );
 
     /***************************************************************************
      * copy spinor work field sw0 to spinor field sf1_0,
@@ -519,21 +525,21 @@ int main(int argc, char **argv) {
     for ( unsigned int i = 0; i < nmeas; i++ )
     {
 		
-        /* flow timeslice source sf1_0 and gauge field */
-        gettimeofday ( &ta, (struct timezone *)NULL );
+      /* flow timeslice source sf1_0 and gauge field */
+      gettimeofday ( &ta2, (struct timezone *)NULL );
 
-        flow_fwd_gauge_spinor_field ( gauge_field_smeared, spinor_field_1[0], gf_niter_tst[i], gf_dt_tst[i], 1, 1 ); // returns flowed version of spinor_field_1[0] and of gauge_field_smeared
+      flow_fwd_gauge_spinor_field ( gauge_field_smeared, spinor_field_1[0], gf_niter_tst[i], gf_dt_tst[i], 1, 1 ); // returns flowed version of spinor_field_1[0] and of gauge_field_smeared
 
-        gettimeofday ( &tb, (struct timezone *)NULL );
-        show_time ( &ta, &tb, "test_gradient_flow", "flow_fwd_gauge_spinor_field", g_cart_id == 0 );
+      gettimeofday ( &tb2, (struct timezone *)NULL );
+      show_time ( &ta2, &tb2, "test_gradient_flow", "_flow_fwd_timeslice_src_and_gauge_field", g_cart_id == 0 );
       
-        /* flow propagator sf1_1 <- D_up^-1 sw0 and gauge field */
-        gettimeofday ( &ta, (struct timezone *)NULL );
+      /* flow propagator sf1_1 <- D_up^-1 sw0 and gauge field */
+      gettimeofday ( &ta2, (struct timezone *)NULL );
 
-        flow_fwd_gauge_spinor_field ( gauge_field_smeared_2, spinor_field_1[1], gf_niter_tst[i], gf_dt_tst[i], 1, 1 ); // returns flowed version of spinor_field_1[1] and of gauge_field_smeared
+      flow_fwd_gauge_spinor_field ( gauge_field_smeared_2, spinor_field_1[1], gf_niter_tst[i], gf_dt_tst[i], 1, 1 ); // returns flowed version of spinor_field_1[1] and of gauge_field_smeared
 
-        gettimeofday ( &tb, (struct timezone *)NULL );
-        show_time ( &ta, &tb, "test_gradient_flow", "flow_fwd_gauge_spinor_field", g_cart_id == 0 );
+      gettimeofday ( &tb2, (struct timezone *)NULL );
+      show_time ( &ta2, &tb2, "test_gradient_flow", "_flow_fwd_propagator_and_gauge_field", g_cart_id == 0 );
 
 
       /***************************************************************************
@@ -632,6 +638,9 @@ int main(int argc, char **argv) {
     exitstatus = prepare_volume_source ( NULL, 0 );
     fini_2level_dtable ( &spinor_field_1 );
     flow_fwd_gauge_spinor_field ( NULL, NULL, 0, 0., 0, 0 );
+    
+    gettimeofday ( &tb1, (struct timezone *)NULL );
+    show_time ( &ta1, &tb1, "test_gradient_flow", "_perform_gf_for_single_sample", g_cart_id == 0 );
 
   }  /* end of loop on isample */
   /***************************************************************************/
