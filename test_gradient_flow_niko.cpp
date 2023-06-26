@@ -105,6 +105,7 @@ int main(int argc, char **argv) {
   int exitstatus;
   int io_proc = -1;
   char filename[400];
+  char data_tag[400];
   struct timeval ta1, tb1, ta2, tb2, start_time, end_time;
   int check_propagator_residual = 0;
   unsigned int gf_niter = 10;  /* total number of gradient flow iterations within flow_fwd_gauge_spinor_field */
@@ -536,7 +537,7 @@ int main(int argc, char **argv) {
       /* flow propagator sf1_1 <- D_up^-1 sw0 and gauge field */
       gettimeofday ( &ta2, (struct timezone *)NULL );
 
-      flow_fwd_gauge_spinor_field ( gauge_field_smeared_2, spinor_field_1[1], gf_niter_tst[i], gf_dt_tst[i], 1, 1 ); // returns flowed version of spinor_field_1[1] and of gauge_field_smeared
+      flow_fwd_gauge_spinor_field ( gauge_field_smeared_2, spinor_field_1[1], gf_niter_tst[i], gf_dt_tst[i], 1, 1 ); // returns flowed version of spinor_field_1[1] and of gauge_field_smeared_2
 
       gettimeofday ( &tb2, (struct timezone *)NULL );
       show_time ( &ta2, &tb2, "test_gradient_flow", "_flow_fwd_propagator_and_gauge_field", g_cart_id == 0 );
@@ -608,10 +609,26 @@ int main(int argc, char **argv) {
        * zchi <- (-1) * zchi_aux2
        ***************************************************************************/
       _co_eq_re_by_co( &zchi, -1, &zchi_aux2 );
-  
+      
+      
+      /***************************************************************************
+       * Observable: plaquette
+       ***************************************************************************/
+      double plaq = 0.;
+      plaquette2 ( &plaq, gauge_field_smeared );
+      
+      if ( io_proc == 2 ) {
+        fprintf ( stdout,"# [test_gradient_flow] iter %u, plaq %25.16e, %s %d\n", i, plaq, __FILE__, __LINE__ );
+        sprintf ( data_tag, "/P/dt%6.4f/n%d/", gf_dt_tst[i], i );
+        exitstatus = write_aff_contraction ( &plaq, affw, NULL, data_tag, 1, "double" );
+        if(exitstatus != 0) {
+          fprintf(stderr, "[test_gradient_flow] Error from write_aff_contraction, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
+          EXIT(3);
+        }
+      }
       
       //fprintf( stdout, "# [test_gradient_flow] isample = %d; gf_t = %f; Zchi_re = %f; Zchi_im = %f\n", isample, gf_t, zchi.re, zchi.im );
-      fprintf( stdout, "%d %f %f %f\n", isample, gf_t, zchi.re, zchi.im );
+      fprintf( stdout, "%u %f %f %f\n", isample, gf_t, zchi.re, zchi.im );
       
       gf_t += gf_niter_tst[i] * gf_dt_tst[i];  /* flowtime is given by gf_t += gf_niter[i]*gf_dt[i] */
   
