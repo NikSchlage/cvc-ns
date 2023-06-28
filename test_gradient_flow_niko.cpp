@@ -105,7 +105,6 @@ int main(int argc, char **argv) {
   int exitstatus;
   int io_proc = -1;
   char filename[400];
-  char data_tag[400];
   struct timeval ta1, tb1, ta2, tb2, start_time, end_time;
   int check_propagator_residual = 0;
   unsigned int gf_niter = 10;  /* total number of gradient flow iterations within flow_fwd_gauge_spinor_field */
@@ -617,17 +616,10 @@ int main(int argc, char **argv) {
       double plaq = 0.;
       plaquette2 ( &plaq, gauge_field_smeared );
       
-      if ( io_proc == 2 ) {
-        fprintf ( stdout,"# [test_gradient_flow] iter %u, plaq %25.16e, %s %d\n", i, plaq, __FILE__, __LINE__ );
-        sprintf ( data_tag, "/P/dt%6.4f/n%d/", gf_dt_tst[i], i );
-        exitstatus = write_aff_contraction ( &plaq, affw, NULL, data_tag, 1, "double" );
-        if(exitstatus != 0) {
-          fprintf(stderr, "[test_gradient_flow] Error from write_aff_contraction, status was %d %s %d\n", exitstatus, __FILE__, __LINE__);
-          EXIT(3);
-        }
-      }
       
-      //fprintf( stdout, "# [test_gradient_flow] isample = %d; gf_t = %f; Zchi_re = %f; Zchi_im = %f\n", isample, gf_t, zchi.re, zchi.im );
+      fprintf ( stdout, "# [test_gradient_flow] iter %u, plaq %25.16e, cf. file %s, line %d\n", i, plaq, __FILE__, __LINE__ );
+      
+      fprintf( stdout, "# [test_gradient_flow] isample = %d; gf_t = %f; Zchi_re = %f; Zchi_im = %f\n", isample, gf_t, zchi.re, zchi.im );
       fprintf( stdout, "%u %f %f %f\n", isample, gf_t, zchi.re, zchi.im );
       
       gf_t += gf_niter_tst[i] * gf_dt_tst[i];  /* flowtime is given by gf_t += gf_niter[i]*gf_dt[i] */
@@ -645,6 +637,10 @@ int main(int argc, char **argv) {
      ***************************************************************************/
     fini_2level_dtable ( &spinor_field_2 );
     fini_2level_dtable ( &spinor_field_3 );
+    
+    zchi_aux = {NULL, NULL};
+    zchi_aux2 = {NULL, NULL};
+    zchi = {NULL, NULL};
   
 #endif  /* of if def _GFLOW_CVC */
 
